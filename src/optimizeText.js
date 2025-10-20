@@ -47,6 +47,10 @@ export async function optimizeText(input) {
     const inputTokens = Math.ceil(input.length / 4);
     const targetTokens = Math.max(20, Math.floor(inputTokens * 0.5));
 
+    console.log("🔧 Making completion request...");
+    console.log("🔧 Target tokens:", targetTokens);
+    console.log("🔧 Input length:", input.length, "chars");
+
     const completion = await openai.chat.completions.create({
       model: process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free",
       messages: [
@@ -64,7 +68,31 @@ export async function optimizeText(input) {
       temperature: 0.3, // Lower temperature for more focused output
     });
 
-    const summary = completion.choices[0].message.content.trim();
+    console.log("✅ Completion received");
+    console.log("✅ Choices count:", completion.choices?.length);
+
+    if (!completion.choices || completion.choices.length === 0) {
+      console.error("❌ No choices in completion response");
+      return { error: "No response choices from AI" };
+    }
+
+    const firstChoice = completion.choices[0];
+    console.log("✅ First choice finish_reason:", firstChoice.finish_reason);
+
+    if (!firstChoice.message) {
+      console.error("❌ No message in first choice");
+      console.log("❌ Choice structure:", JSON.stringify(firstChoice, null, 2));
+      return { error: "No message in AI response" };
+    }
+
+    const summary = firstChoice.message.content?.trim();
+    console.log("✅ Summary content:", summary ? "present" : "undefined/empty");
+    console.log("✅ Summary length:", summary?.length || "undefined");
+
+    if (!summary || summary.length === 0) {
+      console.error("❌ Empty or undefined summary content");
+      return { error: "AI returned empty summary" };
+    }
 
     return {
       summary: summary,

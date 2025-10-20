@@ -24,7 +24,7 @@ if (cmd === "--version" || cmd === "-v") {
 }
 
 // Help command
-if (cmd === "--help" || cmd === "-h" || cmd === "help") {
+if (cmd === "--help" || cmd === "-h" || cmd === "help" || cmd === "-help") {
   console.log(`
 ai-token-optimizer v${packageJson.version}
 
