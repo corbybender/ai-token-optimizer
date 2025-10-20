@@ -42,6 +42,7 @@ touch .env
 ```
 
 **Windows Users:** Use a text editor like VS Code or Notepad++ to create the `.env` file. Do NOT use Windows Notepad as it creates UTF-16 encoded files which won't work. If you must use the command line, use:
+
 ```bash
 echo OPENROUTER_API_KEY=your-key-here > .env
 ```
@@ -66,24 +67,70 @@ WATCH_IGNORE=node_modules/**,dist/**,build/**,summaries/**
 
 ## Usage
 
-### Starting the Server
+**ai-token-optimizer v0.3.0** now supports **two flexible modes** for using the optimization proxy:
 
-Navigate to your project directory and run:
+### Mode 1: Manual Configuration (Permanent Setup)
+
+Quickly configure popular AI tools to automatically use the optimizer:
 
 ```bash
-ai-token-optimizer
+# One-time setup for tools you use daily
+ai-token-optimizer setup continue     # Configure Continue.dev
+ai-token-optimizer setup cline        # Configure Cline
+ai-token-optimizer setup aider        # Configure Aider
+
+# Then use the tools normally - they'll automatically use the proxy
+code .  # Continue.dev works automatically
+cline   # Cline works automatically
+```
+
+**When to use:** Permanent setup for tools you use daily.
+
+### Mode 2: CLI Wrapper (Quick/Temporary)
+
+Run any command with the proxy temporarily enabled:
+
+```bash
+# Run tools on-demand without configuration
+ai-token-optimizer run aider
+ai-token-optimizer run "npm start"
+ai-token-optimizer run "npx some-ai-cli"
+```
+
+**When to use:** Testing, one-off tasks, tools you rarely use.
+
+### Combined Approach Benefits
+
+- **Flexibility**: Choose permanent or temporary setup
+- **Safety**: Easy to undo with `ai-token-optimizer cleanup`
+- **Convenience**: Auto-setup for popular tools
+- **Power**: Wrapper works with anything else
+
+### Management Commands
+
+```bash
+ai-token-optimizer status             # Show current configuration
+ai-token-optimizer cleanup            # Remove all configurations
+ai-token-optimizer --version          # Show version
+ai-token-optimizer --help             # Show help
+```
+
+### Starting the Server (Required for Both Modes)
+
+Before using either mode, start the proxy server:
+
+```bash
+ai-token-optimizer  # Starts on http://localhost:4343
 ```
 
 This will:
 
-- Start the HTTP server on `http://localhost:4343`
+- Start the HTTP proxy server with compression
 - Automatically watch your repository for file changes
 - Generate summaries for files > 2000 tokens
 - Store summaries in `./summaries/` directory
 
-**Legacy Command**: You can also use `ai-token-optimizer start` - both commands work the same way.
-
-**Note**: The watcher runs automatically when you start the server. There's no need to run a separate watch command.
+**Legacy Command**: You can also use `ai-token-optimizer start` - both work the same way.
 
 ## Where Files Are Stored
 
@@ -317,6 +364,7 @@ Cost: ~$0.001 per request (76% savings)
 Simply point your AI tool's API endpoint to `http://localhost:4343/v1` instead of `https://openrouter.ai/api/v1`, and ALL your prompts will be automatically optimized before being sent to OpenRouter.
 
 **See [PROXY_SETUP.md](PROXY_SETUP.md) for complete setup instructions for:**
+
 - Continue.dev
 - Cline (Claude Dev)
 - Cody
@@ -325,6 +373,7 @@ Simply point your AI tool's API endpoint to `http://localhost:4343/v1` instead o
 - Any OpenRouter-compatible tool
 
 **Benefits:**
+
 - ✅ Works with ANY tool that supports custom API endpoints
 - ✅ Zero code changes needed
 - ✅ Automatic compression of all prompts >500 chars
