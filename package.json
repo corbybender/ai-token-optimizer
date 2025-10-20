@@ -1,6 +1,6 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Local server that watches your repo, generates incremental summaries, and exposes an HTTP endpoint to return token-optimized context for LLMs",
   "type": "module",
   "main": "src/server.js",
