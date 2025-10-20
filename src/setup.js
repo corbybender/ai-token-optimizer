@@ -30,16 +30,18 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
-// Tool configurations mapping
+// Tool configurations mapping - ALL use OpenRouter via OpenAI-compatible API for FREE models
 const TOOL_CONFIGS = {
   continue: {
     name: "Continue.dev",
     configPath: path.join(os.homedir(), ".continue", "config.json"),
     proxyUrl: "http://localhost:4343/v1/chat/completions",
+    setupInstructions:
+      "Point Continue.dev to use OpenAI-compatible API through OpenRouter for free models",
     config: {
       models: [
         {
-          title: "Optimized Local Proxy",
+          title: "OpenRouter Free Models (Optimized)",
           provider: "openai",
           model: "gpt-4o",
           apiKey: "placeholder", // Real API key will be forwarded by proxy
@@ -51,12 +53,14 @@ const TOOL_CONFIGS = {
   cline: {
     name: "Cline",
     configPath: path.join(os.homedir(), ".cline", "config.json"),
-    proxyUrl: "http://localhost:4343/v1/messages",
+    proxyUrl: "http://localhost:4343/v1/chat/completions",
+    setupInstructions:
+      "Configure Cline to use OpenAI-compatible API instead of Anthropic for free models",
     config: {
       api: {
-        provider: "anthropic",
-        baseUrl: "http://localhost:4343",
-        headers: {},
+        provider: "openai",
+        baseUrl: "http://localhost:4343/v1/chat/completions",
+        apiKey: "placeholder",
       },
     },
   },
@@ -64,7 +68,9 @@ const TOOL_CONFIGS = {
     name: "Aider",
     configPath: path.join(os.homedir(), ".aider.conf.yml"),
     proxyUrl: "http://localhost:4343/v1/chat/completions",
-    config: `# Aider configuration optimized for token reduction
+    setupInstructions:
+      "Aider uses OpenAI-compatible API for token optimization",
+    config: `# Aider configuration optimized for token reduction (FREE OpenRouter models)
 model: gpt-4-turbo-preview
 api-base: http://localhost:4343/v1/chat/completions
 # Your actual OpenAI API key will be forwarded through the proxy

@@ -40,9 +40,9 @@ Usage:
   ai-token-optimizer --help, -h         Show this help
 
 Setup Examples:
-  ai-token-optimizer setup continue     Configure Continue.dev
-  ai-token-optimizer setup cline        Configure Cline
-  ai-token-optimizer setup aider        Configure Aider
+  ai-token-optimizer setup continue     Configure Continue.dev (OpenRouter free models)
+  ai-token-optimizer setup cline        Configure Cline (OpenRouter free models)
+  ai-token-optimizer setup aider        Configure Aider (OpenRouter free models)
 
 Run Examples:
   ai-token-optimizer run aider          Run Aider with proxy
