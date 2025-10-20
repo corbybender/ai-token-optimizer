@@ -50,10 +50,10 @@ WATCH_IGNORE=node_modules/**,dist/**,build/**,summaries/**
 
 ### Starting the Server
 
-The server automatically starts the file watcher, so you only need one command:
+Navigate to your project directory and run:
 
 ```bash
-ai-token-optimizer start
+ai-token-optimizer
 ```
 
 This will:
@@ -62,6 +62,8 @@ This will:
 - Automatically watch your repository for file changes
 - Generate summaries for files > 2000 tokens
 - Store summaries in `./summaries/` directory
+
+**Legacy Command**: You can also use `ai-token-optimizer start` - both commands work the same way.
 
 **Note**: The watcher runs automatically when you start the server. There's no need to run a separate watch command.
 
