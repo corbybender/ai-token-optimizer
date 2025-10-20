@@ -42,17 +42,48 @@ async function processQueue() {
   const files = Array.from(pending);
   pending.clear();
 
+  // Filter out files we never want to process
+  const filteredFiles = files.filter((f) => {
+    const rel = path.relative(ROOT, f);
+    const pathParts = rel.split(path.sep);
+
+    // Skip files in directories we never want to summarize
+    if (
+      pathParts.some(
+        (part) =>
+          [
+            "node_modules",
+            "dist",
+            "build",
+            "vendor",
+            ".git",
+            "cache",
+            "logs",
+          ].includes(part) ||
+          part.startsWith(".") ||
+          rel.includes("__doc__doc__") // Weird nested paths
+      )
+    ) {
+      return false; // Skip this file
+    }
+
+    return true; // Process this file
+  });
+
   let updated = 0;
-  for (const f of files) {
+  for (const f of filteredFiles) {
     const rel = path.relative(ROOT, f);
     const r = await summarizeFile(rel);
     if (r.changed) updated++;
   }
   const ts = new Date().toLocaleTimeString();
   console.clear();
-  console.log(
-    `🧠 ${ts} | ${files.length} checked | ${updated} summaries updated`
-  );
+  let msg = `🧠 ${ts} | ${filteredFiles.length} checked | ${updated} summaries updated`;
+  if (files.length > filteredFiles.length) {
+    const skipped = files.length - filteredFiles.length;
+    msg += ` | ${skipped} skipped`;
+  }
+  console.log(msg);
   busy = false;
 }
 

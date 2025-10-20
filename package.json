@@ -1,6 +1,6 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.3.4",
+  "version": "0.3.6",
   "description": "Transparent proxy that optimizes AI prompts to reduce token usage. Works with any OpenRouter-compatible tool (Continue, Cline, Aider, etc.)",
   "type": "module",
   "main": "src/server.js",

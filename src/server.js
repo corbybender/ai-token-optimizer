@@ -18,12 +18,22 @@ const envResult = dotenv.config({ path: envPath });
 
 if (envResult.error) {
   console.warn("\n⚠️  Warning: No .env file found in", process.cwd());
-  console.warn("⚠️  Create a .env file with your OPENROUTER_API_KEY to use AI features");
+  console.warn(
+    "⚠️  Create a .env file with your OPENROUTER_API_KEY to use AI features"
+  );
   console.warn("⚠️  See .env.example for template\n");
 } else {
   console.log("✅ Loaded .env from", envPath);
-  console.log("🔍 OPENROUTER_API_KEY found:", process.env.OPENROUTER_API_KEY ? "YES (length: " + process.env.OPENROUTER_API_KEY.length + ")" : "NO");
-  console.log("🔍 All env vars loaded:", Object.keys(envResult.parsed || {}).join(", "));
+  console.log(
+    "🔍 OPENROUTER_API_KEY found:",
+    process.env.OPENROUTER_API_KEY
+      ? "YES (length: " + process.env.OPENROUTER_API_KEY.length + ")"
+      : "NO"
+  );
+  console.log(
+    "🔍 All env vars loaded:",
+    Object.keys(envResult.parsed || {}).join(", ")
+  );
 }
 
 const execAsync = promisify(exec);
@@ -52,7 +62,9 @@ async function killPortProcess(port) {
       }
     } else {
       // On Unix-like systems, use lsof
-      const { stdout } = await execAsync(`lsof -ti:${port}`).catch(() => ({ stdout: "" }));
+      const { stdout } = await execAsync(`lsof -ti:${port}`).catch(() => ({
+        stdout: "",
+      }));
       const pids = stdout.trim().split("\n").filter(Boolean);
 
       for (const pid of pids) {
@@ -123,18 +135,24 @@ app.post("/summarize-file", async (req, res) => {
 import OpenAI from "openai";
 app.post("/v1/chat/completions", async (req, res) => {
   try {
-    const { messages, model, max_tokens, temperature, ...otherParams } = req.body;
+    const { messages, model, max_tokens, temperature, ...otherParams } =
+      req.body;
 
     if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "Missing or invalid 'messages' parameter" });
+      return res
+        .status(400)
+        .json({ error: "Missing or invalid 'messages' parameter" });
     }
 
-    console.log("\n🔄 Proxy request received");
-    console.log("📝 Model:", model || "default");
-    console.log("💬 Messages:", messages.length);
+    console.log(
+      "\n🚀 ─────────────────────────────────────────────────────────────────"
+    );
+    console.log("🔄 OpenAI-Compatible Request Received");
+    console.log(`📝 Model: ${model || "default"}`);
+    console.log(`💬 Messages: ${messages.length}`);
 
     // Extract the user's content from messages
-    const userMessage = messages.find(m => m.role === "user");
+    const userMessage = messages.find((m) => m.role === "user");
     if (!userMessage) {
       return res.status(400).json({ error: "No user message found" });
     }
@@ -165,7 +183,7 @@ app.post("/v1/chat/completions", async (req, res) => {
     }
 
     // Create new messages array with optimized content
-    const optimizedMessages = messages.map(msg =>
+    const optimizedMessages = messages.map((msg) =>
       msg.role === "user" ? { ...msg, content: optimizedContent } : msg
     );
 
@@ -177,18 +195,24 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     console.log("🌐 Forwarding to OpenRouter...");
     const completion = await openai.chat.completions.create({
-      model: model || process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free",
+      model:
+        model ||
+        process.env.OPENROUTER_MODEL ||
+        "meta-llama/llama-4-maverick:free",
       messages: optimizedMessages,
       max_tokens,
       temperature,
-      ...otherParams
+      ...otherParams,
     });
 
     console.log("✅ Response received from OpenRouter\n");
 
     // Add custom header to show compression stats
     res.setHeader("X-Token-Optimizer-Original-Length", originalLength);
-    res.setHeader("X-Token-Optimizer-Optimized-Length", optimizedContent.length);
+    res.setHeader(
+      "X-Token-Optimizer-Optimized-Length",
+      optimizedContent.length
+    );
     res.setHeader("X-Token-Optimizer-Compression", compressionRatio);
 
     res.json(completion);
@@ -203,82 +227,107 @@ app.post("/v1/chat/completions", async (req, res) => {
 import Anthropic from "@anthropic-ai/sdk";
 app.post("/v1/messages", async (req, res) => {
   try {
-    const { messages, model, max_tokens, temperature, system, ...otherParams } = req.body;
+    const { messages, model, max_tokens, temperature, system, ...otherParams } =
+      req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({
         type: "error",
-        error: { type: "invalid_request_error", message: "Missing or invalid 'messages' parameter" }
+        error: {
+          type: "invalid_request_error",
+          message: "Missing or invalid 'messages' parameter",
+        },
       });
     }
 
-    console.log("\n🔄 Anthropic proxy request received");
-    console.log("📝 Model:", model || "claude-3-5-sonnet-20241022");
-    console.log("💬 Messages:", messages.length);
+    console.log(
+      "\n🚀 ─────────────────────────────────────────────────────────────────"
+    );
+    console.log("🔄 Anthropic-Compatible Request Received");
+    console.log(`📝 Model: ${model || "claude-3-5-sonnet-20241022"}`);
+    console.log(`💬 Messages: ${messages.length}`);
 
     // Find user message with text content to optimize
     let totalOriginalLength = 0;
     let totalOptimizedLength = 0;
 
     // Optimize each message's content if it's large enough
-    const optimizedMessages = await Promise.all(messages.map(async (msg) => {
-      if (msg.role !== "user" || !msg.content) return msg;
+    const optimizedMessages = await Promise.all(
+      messages.map(async (msg) => {
+        if (msg.role !== "user" || !msg.content) return msg;
 
-      // Handle both string content and array content
-      if (typeof msg.content === "string") {
-        const originalLength = msg.content.length;
-        totalOriginalLength += originalLength;
+        // Handle both string content and array content
+        if (typeof msg.content === "string") {
+          const originalLength = msg.content.length;
+          totalOriginalLength += originalLength;
 
-        if (originalLength > 500) {
-          console.log("🔧 Optimizing user message...");
-          const { optimizeText } = await import("./optimizeText.js");
-          const result = await optimizeText(msg.content);
-
-          if (!result.error && result.summary) {
-            totalOptimizedLength += result.summary.length;
-            console.log("✅ Compressed:", result.compression_ratio, "reduction");
-            return { ...msg, content: result.summary };
-          }
-        }
-
-        totalOptimizedLength += originalLength;
-        return msg;
-      }
-
-      // Handle array content (text blocks, images, etc.)
-      if (Array.isArray(msg.content)) {
-        const optimizedContent = await Promise.all(msg.content.map(async (block) => {
-          if (block.type === "text" && block.text && block.text.length > 500) {
-            const originalLength = block.text.length;
-            totalOriginalLength += originalLength;
-
-            console.log("🔧 Optimizing text block...");
+          if (originalLength > 500) {
+            console.log("🔧 Optimizing user message...");
             const { optimizeText } = await import("./optimizeText.js");
-            const result = await optimizeText(block.text);
+            const result = await optimizeText(msg.content);
 
             if (!result.error && result.summary) {
               totalOptimizedLength += result.summary.length;
-              console.log("✅ Compressed:", result.compression_ratio, "reduction");
-              return { ...block, text: result.summary };
+              console.log(
+                "✅ Compressed:",
+                result.compression_ratio,
+                "reduction"
+              );
+              return { ...msg, content: result.summary };
             }
-
-            totalOptimizedLength += originalLength;
-          } else if (block.type === "text") {
-            totalOriginalLength += (block.text || "").length;
-            totalOptimizedLength += (block.text || "").length;
           }
-          return block;
-        }));
 
-        return { ...msg, content: optimizedContent };
-      }
+          totalOptimizedLength += originalLength;
+          return msg;
+        }
 
-      return msg;
-    }));
+        // Handle array content (text blocks, images, etc.)
+        if (Array.isArray(msg.content)) {
+          const optimizedContent = await Promise.all(
+            msg.content.map(async (block) => {
+              if (
+                block.type === "text" &&
+                block.text &&
+                block.text.length > 500
+              ) {
+                const originalLength = block.text.length;
+                totalOriginalLength += originalLength;
 
-    const compressionRatio = totalOriginalLength > 0
-      ? ((1 - totalOptimizedLength / totalOriginalLength) * 100).toFixed(1) + "%"
-      : "0%";
+                console.log("🔧 Optimizing text block...");
+                const { optimizeText } = await import("./optimizeText.js");
+                const result = await optimizeText(block.text);
+
+                if (!result.error && result.summary) {
+                  totalOptimizedLength += result.summary.length;
+                  console.log(
+                    "✅ Compressed:",
+                    result.compression_ratio,
+                    "reduction"
+                  );
+                  return { ...block, text: result.summary };
+                }
+
+                totalOptimizedLength += originalLength;
+              } else if (block.type === "text") {
+                totalOriginalLength += (block.text || "").length;
+                totalOptimizedLength += (block.text || "").length;
+              }
+              return block;
+            })
+          );
+
+          return { ...msg, content: optimizedContent };
+        }
+
+        return msg;
+      })
+    );
+
+    const compressionRatio =
+      totalOriginalLength > 0
+        ? ((1 - totalOptimizedLength / totalOriginalLength) * 100).toFixed(1) +
+          "%"
+        : "0%";
 
     console.log("📊 Total original:", totalOriginalLength, "chars");
     console.log("📊 Total optimized:", totalOptimizedLength, "chars");
@@ -290,8 +339,9 @@ app.post("/v1/messages", async (req, res) => {
         type: "error",
         error: {
           type: "authentication_error",
-          message: "ANTHROPIC_API_KEY not found in .env file. Add it to use Anthropic proxy mode."
-        }
+          message:
+            "ANTHROPIC_API_KEY not found in .env file. Add it to use Anthropic proxy mode.",
+        },
       });
     }
 
@@ -307,7 +357,7 @@ app.post("/v1/messages", async (req, res) => {
       max_tokens: max_tokens || 4096,
       temperature,
       system,
-      ...otherParams
+      ...otherParams,
     });
 
     console.log("✅ Response received from Anthropic\n");
@@ -322,7 +372,7 @@ app.post("/v1/messages", async (req, res) => {
     console.error("❌ Anthropic proxy error:", err.message);
     res.status(500).json({
       type: "error",
-      error: { type: "api_error", message: err.message }
+      error: { type: "api_error", message: err.message },
     });
   }
 });
@@ -337,7 +387,9 @@ app.post("/summarize-text", async (req, res) => {
     const result = await optimizeText(text);
 
     // If request is from browser form, return HTML
-    if (req.headers["content-type"]?.includes("application/x-www-form-urlencoded")) {
+    if (
+      req.headers["content-type"]?.includes("application/x-www-form-urlencoded")
+    ) {
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -357,13 +409,25 @@ app.post("/summarize-text", async (req, res) => {
           <h2>✅ Compression Result</h2>
           <div class="result">
             <h3>Compressed Text:</h3>
-            <div class="summary">${result.summary || result.error || 'No summary generated'}</div>
+            <div class="summary">${
+              result.summary || result.error || "No summary generated"
+            }</div>
             <p class="meta">
-              <strong>Original:</strong> ${result.original_length || 0} characters<br/>
-              <strong>Compressed:</strong> ${result.compressed_length || 0} characters<br/>
-              <strong>Saved:</strong> ${result.compression_ratio || '0%'} reduction
+              <strong>Original:</strong> ${
+                result.original_length || 0
+              } characters<br/>
+              <strong>Compressed:</strong> ${
+                result.compressed_length || 0
+              } characters<br/>
+              <strong>Saved:</strong> ${
+                result.compression_ratio || "0%"
+              } reduction
             </p>
-            ${result.error ? `<p style="color: red;">Error: ${result.error}</p>` : ''}
+            ${
+              result.error
+                ? `<p style="color: red;">Error: ${result.error}</p>`
+                : ""
+            }
           </div>
           <a href="/test">← Back to Test Page</a>
         </body>

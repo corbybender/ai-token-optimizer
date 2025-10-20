@@ -152,8 +152,8 @@ if (cmd === "cleanup-summaries") {
 
   cleanDir(summariesDir);
 
-  // Also clean up .cache.json file which tracks these files
-  const cacheFile = path.join(summariesDir, ".cache.json");
+  // Also clean up _cache.json file which tracks these files
+  const cacheFile = path.join(summariesDir, "_cache.json");
   if (fs.existsSync(cacheFile)) {
     try {
       const cache = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
