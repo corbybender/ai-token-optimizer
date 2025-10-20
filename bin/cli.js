@@ -35,6 +35,7 @@ Usage:
   ai-token-optimizer run <command>      Run a command with proxy enabled
   ai-token-optimizer status             Show current configuration status
   ai-token-optimizer cleanup            Remove all configurations
+  ai-token-optimizer cleanup-summaries  Remove unwanted summary files
   ai-token-optimizer --version, -v      Show version
   ai-token-optimizer --help, -h         Show this help
 
@@ -85,6 +86,103 @@ if (cmd === "cleanup") {
     pathToFileURL(path.join(packageRoot, "src", "cleanup.js")).href
   );
   await cleanupModule.cleanup();
+  process.exit(0);
+}
+
+// Cleanup-summaries command
+if (cmd === "cleanup-summaries") {
+  console.log("🧹 Cleaning up unwanted summary files...");
+  console.log("=========================================");
+
+  const fs = await import("fs");
+  const path = await import("path");
+  const summariesDir = path.join(process.cwd(), "summaries");
+
+  if (!fs.existsSync(summariesDir)) {
+    console.log("✅ No summaries directory found");
+    process.exit(0);
+  }
+
+  function shouldRemove(filePath) {
+    // Remove summaries for files in these directories
+    const pathParts = filePath.split(path.sep);
+    return pathParts.some(
+      (part) =>
+        [
+          "node_modules",
+          "dist",
+          "build",
+          "vendor",
+          ".git",
+          "cache",
+          "logs",
+        ].includes(part) ||
+        part.startsWith(".") ||
+        filePath.includes("__doc__doc__") // Your weird nested paths
+    );
+  }
+
+  let removed = 0;
+  function cleanDir(dir) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        cleanDir(fullPath);
+        // Remove empty directories
+        try {
+          if (fs.readdirSync(fullPath).length === 0) {
+            fs.rmdirSync(fullPath);
+          }
+        } catch (err) {
+          // Directory might not be empty anymore
+        }
+      } else if (entry.isFile() && entry.name.endsWith(".summary.json")) {
+        if (shouldRemove(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+            removed++;
+          } catch (err) {
+            console.warn(`Could not remove ${fullPath}: ${err.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  cleanDir(summariesDir);
+
+  // Also clean up .cache.json file which tracks these files
+  const cacheFile = path.join(summariesDir, ".cache.json");
+  if (fs.existsSync(cacheFile)) {
+    try {
+      const cache = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+      // Remove entries that match our removal criteria
+      let cacheChanged = false;
+      for (const [filePath, data] of Object.entries(cache)) {
+        if (shouldRemove(filePath)) {
+          delete cache[filePath];
+          cacheChanged = true;
+        }
+      }
+      if (cacheChanged) {
+        fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
+        console.log("✅ Updated cache file to remove deleted summaries");
+      }
+    } catch (err) {
+      console.warn(`Could not update cache file: ${err.message}`);
+    }
+  }
+
+  console.log(
+    `✅ Summary cleanup complete! Removed ${removed} unwanted summary files.`
+  );
+  console.log("\n💡 To prevent future unwanted summaries:");
+  console.log("   Add to your .env file:");
+  console.log(
+    "   WATCH_IGNORE=node_modules/**,dist/**,build/**,summaries/**,.git/**,vendor/**,logs/**"
+  );
+
   process.exit(0);
 }
 
