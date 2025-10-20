@@ -2,6 +2,8 @@
 
 A local server that watches your code repository, generates AI-powered summaries of large files, and exposes HTTP endpoints to return token-optimized context for LLMs. This dramatically reduces token usage when working with AI coding assistants while maintaining code context.
 
+**NEW: Transparent Proxy Mode** - Use this as a drop-in replacement for OpenRouter in ANY AI tool (VS Code extensions, CLI tools, etc.) to automatically compress prompts and save tokens! See [PROXY_SETUP.md](PROXY_SETUP.md) for details.
+
 ## How It Works
 
 1. **File Watching**: Monitors your repository for changes to JavaScript, TypeScript, HTML, CSS, and EJS files
@@ -9,6 +11,7 @@ A local server that watches your code repository, generates AI-powered summaries
 3. **AI-Powered Compression**: Uses OpenRouter API to create concise, context-aware summaries
 4. **Incremental Updates**: Only re-summarizes files when they change (uses SHA-1 hashing for change detection)
 5. **HTTP API**: Provides endpoints to retrieve optimized text and file summaries
+6. **Transparent Proxy**: Acts as OpenRouter-compatible proxy for automatic optimization in any tool
 
 ## Installation
 
@@ -307,23 +310,30 @@ You → [5000 token file] → ai-token-optimizer → [1200 token summary] → AI
 Cost: ~$0.001 per request (76% savings)
 ```
 
-### Future Integration Plans
+### **NEW: Transparent Proxy Mode (Recommended)**
 
-We're working on native integrations for:
+**This tool now works as a transparent proxy for ANY AI tool!**
 
-- VS Code extension marketplace
-- MCP (Model Context Protocol) server
-- LangChain integration
-- Direct OpenRouter proxy mode
+Simply point your AI tool's API endpoint to `http://localhost:4343/v1` instead of `https://openrouter.ai/api/v1`, and ALL your prompts will be automatically optimized before being sent to OpenRouter.
 
-### Current Limitations
+**See [PROXY_SETUP.md](PROXY_SETUP.md) for complete setup instructions for:**
+- Continue.dev
+- Cline (Claude Dev)
+- Cody
+- Aider
+- Custom scripts
+- Any OpenRouter-compatible tool
 
-- **No automatic VS Code integration yet** - Currently requires manual API calls or script wrappers
-- **Pre-compression required** - You must explicitly call the optimization endpoints
-- **Not a transparent proxy** - Cannot simply redirect AI extension traffic through this server (yet)
+**Benefits:**
+- ✅ Works with ANY tool that supports custom API endpoints
+- ✅ Zero code changes needed
+- ✅ Automatic compression of all prompts >500 chars
+- ✅ Real-time monitoring and compression stats
+- ✅ Transparent operation - your tools work exactly as before
 
 For now, this tool is best suited for:
 
+- **Any AI tool with custom endpoint support** (Continue, Cline, Aider, etc.)
 - CLI-based AI workflows where you control the prompts
 - Custom scripts that programmatically interact with AI APIs
 - Reducing costs when preparing context for AI manually

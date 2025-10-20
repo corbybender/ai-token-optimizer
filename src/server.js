@@ -118,6 +118,86 @@ app.post("/summarize-file", async (req, res) => {
   }
 });
 
+// OpenRouter-compatible proxy endpoint
+// This allows ANY tool to use this as a drop-in OpenRouter replacement
+import OpenAI from "openai";
+app.post("/v1/chat/completions", async (req, res) => {
+  try {
+    const { messages, model, max_tokens, temperature, ...otherParams } = req.body;
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "Missing or invalid 'messages' parameter" });
+    }
+
+    console.log("\n🔄 Proxy request received");
+    console.log("📝 Model:", model || "default");
+    console.log("💬 Messages:", messages.length);
+
+    // Extract the user's content from messages
+    const userMessage = messages.find(m => m.role === "user");
+    if (!userMessage) {
+      return res.status(400).json({ error: "No user message found" });
+    }
+
+    const originalContent = userMessage.content;
+    const originalLength = originalContent.length;
+
+    console.log("📊 Original content length:", originalLength, "chars");
+
+    // Optimize the content if it's large enough (>500 chars)
+    let optimizedContent = originalContent;
+    let compressionRatio = "0%";
+
+    if (originalLength > 500) {
+      console.log("🔧 Optimizing content...");
+      const optimizeText = (await import("./optimizeText.js")).optimizeText;
+      const result = await optimizeText(originalContent);
+
+      if (!result.error && result.summary) {
+        optimizedContent = result.summary;
+        compressionRatio = result.compression_ratio;
+        console.log("✅ Compressed:", result.compression_ratio, "reduction");
+      } else {
+        console.log("⚠️  Optimization failed, using original");
+      }
+    } else {
+      console.log("⏭️  Content too small, skipping optimization");
+    }
+
+    // Create new messages array with optimized content
+    const optimizedMessages = messages.map(msg =>
+      msg.role === "user" ? { ...msg, content: optimizedContent } : msg
+    );
+
+    // Forward to real OpenRouter
+    const openai = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
+    });
+
+    console.log("🌐 Forwarding to OpenRouter...");
+    const completion = await openai.chat.completions.create({
+      model: model || process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free",
+      messages: optimizedMessages,
+      max_tokens,
+      temperature,
+      ...otherParams
+    });
+
+    console.log("✅ Response received from OpenRouter\n");
+
+    // Add custom header to show compression stats
+    res.setHeader("X-Token-Optimizer-Original-Length", originalLength);
+    res.setHeader("X-Token-Optimizer-Optimized-Length", optimizedContent.length);
+    res.setHeader("X-Token-Optimizer-Compression", compressionRatio);
+
+    res.json(completion);
+  } catch (err) {
+    console.error("❌ Proxy error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Test endpoint: summarize arbitrary text
 import { optimizeText } from "./optimizeText.js";
 app.post("/summarize-text", async (req, res) => {

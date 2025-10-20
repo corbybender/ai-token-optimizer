@@ -1,7 +1,7 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.1.10",
-  "description": "Local server that watches your repo, generates incremental summaries, and exposes an HTTP endpoint to return token-optimized context for LLMs",
+  "version": "0.2.0",
+  "description": "Transparent proxy that optimizes AI prompts to reduce token usage. Works with any OpenRouter-compatible tool (Continue, Cline, Aider, etc.)",
   "type": "module",
   "main": "src/server.js",
   "bin": {
@@ -40,6 +40,7 @@
     "!src/test.js",
     "bin/**/*",
     "readme.md",
+    "PROXY_SETUP.md",
     "LICENSE",
     ".env.example"
   ],
