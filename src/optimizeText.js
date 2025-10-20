@@ -12,6 +12,11 @@ function getOpenAIClient() {
   const model =
     process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free";
 
+  console.log("🔍 [optimizeText] Checking for API key...");
+  console.log("🔍 [optimizeText] API key exists:", !!apiKey);
+  console.log("🔍 [optimizeText] API key length:", apiKey ? apiKey.length : 0);
+  console.log("🔍 [optimizeText] process.cwd():", process.cwd());
+
   if (!apiKey) {
     throw new Error(
       "No API key found. Please create a .env file in your project root with OPENROUTER_API_KEY=your-key-here"

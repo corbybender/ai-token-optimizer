@@ -11,6 +11,9 @@ import path from "path";
 
 // Explicitly load .env from the user's current working directory
 const envPath = path.join(process.cwd(), ".env");
+console.log("🔍 Looking for .env at:", envPath);
+console.log("🔍 File exists:", fs.existsSync(envPath));
+
 const envResult = dotenv.config({ path: envPath });
 
 if (envResult.error) {
@@ -19,6 +22,8 @@ if (envResult.error) {
   console.warn("⚠️  See .env.example for template\n");
 } else {
   console.log("✅ Loaded .env from", envPath);
+  console.log("🔍 OPENROUTER_API_KEY found:", process.env.OPENROUTER_API_KEY ? "YES (length: " + process.env.OPENROUTER_API_KEY.length + ")" : "NO");
+  console.log("🔍 All env vars loaded:", Object.keys(envResult.parsed || {}).join(", "));
 }
 
 const execAsync = promisify(exec);
