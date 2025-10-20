@@ -34,7 +34,7 @@ function analyzeJS(content) {
   }
 }
 
-// Old local summarizeText for JS/HTML/CSS
+// Local summarizer for JS/HTML/CSS
 function localSummarizeText(content, filePath) {
   const ext = path.extname(filePath);
   if ([".js", ".ts", ".mjs"].includes(ext)) {
@@ -52,7 +52,7 @@ function localSummarizeText(content, filePath) {
   return { summary: "Generic text/code file." };
 }
 
-// New AI-based summarizeText function
+// AI-based summarizer
 async function summarizeTextWithAI(
   content,
   filePath,
@@ -80,7 +80,8 @@ export async function summarizeFile(file) {
 
   if (!(await fs.pathExists(full))) {
     // file removed: cleanup
-    const outPath = path.join(OUT_DIR, `${file}.summary.json`);
+    const outPath = path.join(OUT_DIR, file + ".summary.json");
+    await fs.ensureDir(path.dirname(outPath));
     if (await fs.pathExists(outPath)) await fs.remove(outPath);
     delete cache[file];
     await saveCache(cache);
@@ -94,14 +95,15 @@ export async function summarizeFile(file) {
   const tokens = estimateTokens(text);
   if (tokens < TOKEN_LIMIT) {
     // small file -> ensure no stale summary
-    const outPath = path.join(OUT_DIR, `${file}.summary.json`);
+    const outPath = path.join(OUT_DIR, file + ".summary.json");
+    await fs.ensureDir(path.dirname(outPath));
     if (await fs.pathExists(outPath)) await fs.remove(outPath);
     delete cache[file];
     await saveCache(cache);
     return { changed: false };
   }
 
-  // Use AI-based summarization with repo context
+  // AI-based summarization
   const info = await summarizeTextWithAI(text, file, true);
 
   const data = {
@@ -110,8 +112,8 @@ export async function summarizeFile(file) {
     ...info,
   };
 
-  const outPath = path.join(OUT_DIR, `${file}.summary.json`);
-  await fs.ensureDir(path.dirname(outPath));
+  const outPath = path.join(OUT_DIR, file + ".summary.json");
+  await fs.ensureDir(path.dirname(outPath)); // ensure folder exists
   await fs.writeJson(outPath, data, { spaces: 2 });
 
   cache[file] = { hash: h, updated: Date.now() };
