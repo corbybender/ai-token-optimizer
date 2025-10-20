@@ -1,6 +1,6 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Transparent proxy that optimizes AI prompts to reduce token usage. Works with any OpenRouter-compatible tool (Continue, Cline, Aider, etc.)",
   "type": "module",
   "main": "src/server.js",
@@ -45,6 +45,7 @@
     ".env.example"
   ],
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
     "body-parser": "^1.20.2",
     "chokidar": "^3.5.3",
     "dotenv": "^16.0.0",

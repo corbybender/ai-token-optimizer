@@ -4,14 +4,20 @@ The AI Token Optimizer can act as a **transparent middleware proxy** that sits b
 
 ## How It Works
 
+### For OpenRouter-based tools:
 ```
 Your AI Tool → http://localhost:4343/v1/chat/completions → [Optimize] → OpenRouter → Response
 ```
 
-Instead of pointing your AI tool directly at OpenRouter, you point it at your local optimizer. The optimizer:
+### For Anthropic API-based tools (Claude Code, etc.):
+```
+Your AI Tool → http://localhost:4343/v1/messages → [Optimize] → Anthropic API → Response
+```
+
+Instead of pointing your AI tool directly at the API provider, you point it at your local optimizer. The optimizer:
 1. Receives the request
 2. Compresses prompts >500 characters
-3. Forwards the optimized request to OpenRouter
+3. Forwards the optimized request to the real API
 4. Returns the response to your tool
 
 **Result**: Transparent token savings with zero code changes!
@@ -75,6 +81,12 @@ Edit VS Code settings (`Ctrl+,`):
   }
 }
 ```
+
+### **Claude Code** (Anthropic API)
+
+Currently, Claude Code doesn't support custom API endpoints in its configuration. However, you can use environment variables or modify your system's proxy settings if supported.
+
+**Alternative**: Use Continue.dev or Cline which support custom endpoints and work great with Claude!
 
 ### **GitHub Copilot Chat** (if using OpenRouter)
 
@@ -184,9 +196,16 @@ PORT=4444
 Then update your tools to use `http://localhost:4444/v1`
 
 ### API key not found
-Make sure your `.env` file contains:
+Make sure your `.env` file contains the appropriate API key:
+
+For OpenRouter proxy:
 ```
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
+
+For Anthropic proxy (Claude):
+```
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
 ### No compression happening

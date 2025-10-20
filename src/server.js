@@ -198,6 +198,135 @@ app.post("/v1/chat/completions", async (req, res) => {
   }
 });
 
+// Anthropic API-compatible proxy endpoint
+// This allows tools using Anthropic's API (like Claude Code) to use the optimizer
+import Anthropic from "@anthropic-ai/sdk";
+app.post("/v1/messages", async (req, res) => {
+  try {
+    const { messages, model, max_tokens, temperature, system, ...otherParams } = req.body;
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({
+        type: "error",
+        error: { type: "invalid_request_error", message: "Missing or invalid 'messages' parameter" }
+      });
+    }
+
+    console.log("\n🔄 Anthropic proxy request received");
+    console.log("📝 Model:", model || "claude-3-5-sonnet-20241022");
+    console.log("💬 Messages:", messages.length);
+
+    // Find user message with text content to optimize
+    let totalOriginalLength = 0;
+    let totalOptimizedLength = 0;
+
+    // Optimize each message's content if it's large enough
+    const optimizedMessages = await Promise.all(messages.map(async (msg) => {
+      if (msg.role !== "user" || !msg.content) return msg;
+
+      // Handle both string content and array content
+      if (typeof msg.content === "string") {
+        const originalLength = msg.content.length;
+        totalOriginalLength += originalLength;
+
+        if (originalLength > 500) {
+          console.log("🔧 Optimizing user message...");
+          const { optimizeText } = await import("./optimizeText.js");
+          const result = await optimizeText(msg.content);
+
+          if (!result.error && result.summary) {
+            totalOptimizedLength += result.summary.length;
+            console.log("✅ Compressed:", result.compression_ratio, "reduction");
+            return { ...msg, content: result.summary };
+          }
+        }
+
+        totalOptimizedLength += originalLength;
+        return msg;
+      }
+
+      // Handle array content (text blocks, images, etc.)
+      if (Array.isArray(msg.content)) {
+        const optimizedContent = await Promise.all(msg.content.map(async (block) => {
+          if (block.type === "text" && block.text && block.text.length > 500) {
+            const originalLength = block.text.length;
+            totalOriginalLength += originalLength;
+
+            console.log("🔧 Optimizing text block...");
+            const { optimizeText } = await import("./optimizeText.js");
+            const result = await optimizeText(block.text);
+
+            if (!result.error && result.summary) {
+              totalOptimizedLength += result.summary.length;
+              console.log("✅ Compressed:", result.compression_ratio, "reduction");
+              return { ...block, text: result.summary };
+            }
+
+            totalOptimizedLength += originalLength;
+          } else if (block.type === "text") {
+            totalOriginalLength += (block.text || "").length;
+            totalOptimizedLength += (block.text || "").length;
+          }
+          return block;
+        }));
+
+        return { ...msg, content: optimizedContent };
+      }
+
+      return msg;
+    }));
+
+    const compressionRatio = totalOriginalLength > 0
+      ? ((1 - totalOptimizedLength / totalOriginalLength) * 100).toFixed(1) + "%"
+      : "0%";
+
+    console.log("📊 Total original:", totalOriginalLength, "chars");
+    console.log("📊 Total optimized:", totalOptimizedLength, "chars");
+
+    // Check for Anthropic API key
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (!anthropicKey) {
+      return res.status(401).json({
+        type: "error",
+        error: {
+          type: "authentication_error",
+          message: "ANTHROPIC_API_KEY not found in .env file. Add it to use Anthropic proxy mode."
+        }
+      });
+    }
+
+    // Forward to real Anthropic API
+    const anthropic = new Anthropic({
+      apiKey: anthropicKey,
+    });
+
+    console.log("🌐 Forwarding to Anthropic API...");
+    const response = await anthropic.messages.create({
+      model: model || "claude-3-5-sonnet-20241022",
+      messages: optimizedMessages,
+      max_tokens: max_tokens || 4096,
+      temperature,
+      system,
+      ...otherParams
+    });
+
+    console.log("✅ Response received from Anthropic\n");
+
+    // Add custom headers to show compression stats
+    res.setHeader("X-Token-Optimizer-Original-Length", totalOriginalLength);
+    res.setHeader("X-Token-Optimizer-Optimized-Length", totalOptimizedLength);
+    res.setHeader("X-Token-Optimizer-Compression", compressionRatio);
+
+    res.json(response);
+  } catch (err) {
+    console.error("❌ Anthropic proxy error:", err.message);
+    res.status(500).json({
+      type: "error",
+      error: { type: "api_error", message: err.message }
+    });
+  }
+});
+
 // Test endpoint: summarize arbitrary text
 import { optimizeText } from "./optimizeText.js";
 app.post("/summarize-text", async (req, res) => {
