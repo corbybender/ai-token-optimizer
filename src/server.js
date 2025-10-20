@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import "dotenv/config"; // Load .env file first
+import dotenv from "dotenv";
 import express from "express";
 import bodyParser from "body-parser";
 import { summarizeFile } from "./summarizer.js";
@@ -9,17 +9,21 @@ import { promisify } from "util";
 import fs from "fs";
 import path from "path";
 
-const execAsync = promisify(exec);
-const PORT = process.env.PORT ? Number(process.env.PORT) : 4343;
-const app = express();
-
-// Check for .env file and warn if missing
+// Explicitly load .env from the user's current working directory
 const envPath = path.join(process.cwd(), ".env");
-if (!fs.existsSync(envPath)) {
+const envResult = dotenv.config({ path: envPath });
+
+if (envResult.error) {
   console.warn("\n⚠️  Warning: No .env file found in", process.cwd());
   console.warn("⚠️  Create a .env file with your OPENROUTER_API_KEY to use AI features");
   console.warn("⚠️  See .env.example for template\n");
+} else {
+  console.log("✅ Loaded .env from", envPath);
 }
+
+const execAsync = promisify(exec);
+const PORT = process.env.PORT ? Number(process.env.PORT) : 4343;
+const app = express();
 
 // Kill any process using the port before starting
 async function killPortProcess(port) {
