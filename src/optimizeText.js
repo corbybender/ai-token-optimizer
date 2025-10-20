@@ -4,21 +4,25 @@ import fs from "fs-extra";
 import path from "path";
 import { getRepoSummary } from "./getRepoSummary.js";
 
-// Load OpenRouter API key
-const apiKey = process.env.OPENROUTER_API_KEY;
-const model =
-  process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free";
+/**
+ * Get OpenAI client instance (lazy initialization)
+ */
+function getOpenAIClient() {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model =
+    process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free";
 
-if (!apiKey) {
-  throw new Error(
-    "No API key found. Please set OPENROUTER_API_KEY in your environment variables (.env file)."
-  );
+  if (!apiKey) {
+    throw new Error(
+      "No API key found. Please create a .env file in your project root with OPENROUTER_API_KEY=your-key-here"
+    );
+  }
+
+  return new OpenAI({
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+  });
 }
-
-const openai = new OpenAI({
-  apiKey,
-  baseURL: "https://openrouter.ai/api/v1",
-});
 
 /**
  * Optimize text by summarizing with AI
@@ -30,6 +34,7 @@ export async function optimizeText(input) {
   if (typeof input !== "string") return { error: "Unsupported input type" };
 
   try {
+    const openai = getOpenAIClient();
     // Calculate appropriate max_tokens based on input length
     // Target: 50% compression for large text, minimum 20 tokens
     const inputTokens = Math.ceil(input.length / 4);

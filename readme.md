@@ -28,7 +28,17 @@ npm install
 
 ## Configuration
 
-Create a `.env` file in the root directory of **your project** (not in the ai-token-optimizer directory):
+**IMPORTANT**: Create a `.env` file in the root directory of **your project** where you run the command (NOT in the ai-token-optimizer package directory):
+
+```bash
+# Example: If you're in /home/user/my-project/, create:
+# /home/user/my-project/.env
+
+cd your-project-directory
+touch .env
+```
+
+Add the following to your `.env` file:
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-yourkeyhere
@@ -40,7 +50,7 @@ WATCH_IGNORE=node_modules/**,dist/**,build/**,summaries/**
 
 **Configuration Options:**
 
-- `OPENROUTER_API_KEY` - **Required**. Your OpenRouter API key. Get one at [openrouter.ai](https://openrouter.ai)
+- `OPENROUTER_API_KEY` - **Required for AI features**. Your OpenRouter API key. Get one free at [openrouter.ai](https://openrouter.ai). Without this, you'll see "401 No auth credentials found" errors.
 - `OPENROUTER_MODEL` - **Optional**. Defaults to `meta-llama/llama-4-maverick:free`
 - `PORT` - **Optional**. Server port. Defaults to `4343`
 - `WATCH_PATTERNS` - **Optional**. Comma-separated glob patterns for files to watch. Defaults to `**/*.js,**/*.ts,**/*.mjs,**/*.ejs,**/*.html,**/*.css`

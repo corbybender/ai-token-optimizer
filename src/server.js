@@ -6,10 +6,20 @@ import { summarizeFile } from "./summarizer.js";
 import "./watcher.js"; // start watcher in the same process
 import { exec } from "child_process";
 import { promisify } from "util";
+import fs from "fs";
+import path from "path";
 
 const execAsync = promisify(exec);
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4343;
 const app = express();
+
+// Check for .env file and warn if missing
+const envPath = path.join(process.cwd(), ".env");
+if (!fs.existsSync(envPath)) {
+  console.warn("\n⚠️  Warning: No .env file found in", process.cwd());
+  console.warn("⚠️  Create a .env file with your OPENROUTER_API_KEY to use AI features");
+  console.warn("⚠️  See .env.example for template\n");
+}
 
 // Kill any process using the port before starting
 async function killPortProcess(port) {
