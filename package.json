@@ -1,0 +1,47 @@
+{
+  "name": "ai-token-optimizer",
+  "version": "0.1.2",
+  "description": "Local server that watches your repo, generates incremental summaries, and exposes an HTTP endpoint to return token-optimized context for LLMs",
+  "type": "module",
+  "main": "src/server.js",
+  "bin": {
+    "ai-token-optimizer": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "watch": "node src/watcher.js"
+  },
+  "keywords": [
+    "ai",
+    "token",
+    "optimization",
+    "llm",
+    "context",
+    "summarization",
+    "openai",
+    "tokens",
+    "compression"
+  ],
+  "author": "Corby Bender",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src/*.js",
+    "!src/test.js",
+    "bin/**/*",
+    "readme.md",
+    "LICENSE",
+    ".env.example"
+  ],
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "chokidar": "^3.5.3",
+    "dotenv": "^16.0.0",
+    "esprima": "^4.0.1",
+    "express": "^4.18.2",
+    "fs-extra": "^11.1.1",
+    "openai": "^4.5.0"
+  }
+}
