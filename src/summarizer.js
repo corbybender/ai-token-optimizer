@@ -1,11 +1,9 @@
-// src/summarizer.js
 import fs from "fs-extra";
 import path from "path";
 import esprima from "esprima";
 import crypto from "crypto";
-import { loadCache, saveCache } from "./cache.js";
+import { loadCache, saveCache, safeFileName } from "./cache.js";
 import { optimizeText } from "./optimizeText.js";
-import { getRepoSummary } from "./getRepoSummary.js";
 
 const ROOT = process.cwd();
 const OUT_DIR = path.join(ROOT, "summaries");
@@ -34,7 +32,6 @@ function analyzeJS(content) {
   }
 }
 
-// Local summarizer for JS/HTML/CSS
 function localSummarizeText(content, filePath) {
   const ext = path.extname(filePath);
   if ([".js", ".ts", ".mjs"].includes(ext)) {
@@ -52,7 +49,6 @@ function localSummarizeText(content, filePath) {
   return { summary: "Generic text/code file." };
 }
 
-// AI-based summarizer
 async function summarizeTextWithAI(
   content,
   filePath,
@@ -79,8 +75,7 @@ export async function summarizeFile(file) {
   const full = path.join(ROOT, file);
 
   if (!(await fs.pathExists(full))) {
-    // file removed: cleanup
-    const outPath = path.join(OUT_DIR, file + ".summary.json");
+    const outPath = path.join(OUT_DIR, safeFileName(file) + ".summary.json");
     await fs.ensureDir(path.dirname(outPath));
     if (await fs.pathExists(outPath)) await fs.remove(outPath);
     delete cache[file];
@@ -94,8 +89,7 @@ export async function summarizeFile(file) {
 
   const tokens = estimateTokens(text);
   if (tokens < TOKEN_LIMIT) {
-    // small file -> ensure no stale summary
-    const outPath = path.join(OUT_DIR, file + ".summary.json");
+    const outPath = path.join(OUT_DIR, safeFileName(file) + ".summary.json");
     await fs.ensureDir(path.dirname(outPath));
     if (await fs.pathExists(outPath)) await fs.remove(outPath);
     delete cache[file];
@@ -103,7 +97,6 @@ export async function summarizeFile(file) {
     return { changed: false };
   }
 
-  // AI-based summarization
   const info = await summarizeTextWithAI(text, file, true);
 
   const data = {
@@ -112,8 +105,8 @@ export async function summarizeFile(file) {
     ...info,
   };
 
-  const outPath = path.join(OUT_DIR, file + ".summary.json");
-  await fs.ensureDir(path.dirname(outPath)); // ensure folder exists
+  const outPath = path.join(OUT_DIR, safeFileName(file) + ".summary.json");
+  await fs.ensureDir(path.dirname(outPath));
   await fs.writeJson(outPath, data, { spaces: 2 });
 
   cache[file] = { hash: h, updated: Date.now() };
