@@ -38,6 +38,11 @@ cd your-project-directory
 touch .env
 ```
 
+**Windows Users:** Use a text editor like VS Code or Notepad++ to create the `.env` file. Do NOT use Windows Notepad as it creates UTF-16 encoded files which won't work. If you must use the command line, use:
+```bash
+echo OPENROUTER_API_KEY=your-key-here > .env
+```
+
 Add the following to your `.env` file:
 
 ```env
