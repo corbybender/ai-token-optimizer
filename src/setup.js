@@ -135,7 +135,8 @@ export async function setup(tool) {
         // Add optimized model at the beginning
         finalConfig.models.unshift(toolConfig.config.models[0]);
       } else if (tool === "cline") {
-        finalConfig.api = { ...existingConfig.api, ...toolConfig.config.api };
+        // REPLACE entire api config (not merge) to ensure we use OpenRouter
+        finalConfig.api = toolConfig.config.api;
       }
 
       fs.writeFileSync(
