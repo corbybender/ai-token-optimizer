@@ -9,12 +9,14 @@ import { getRepoSummary } from "./getRepoSummary.js";
  */
 function getOpenAIClient() {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model =
-    process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free";
 
   console.log("🔍 [optimizeText] Checking for API key...");
   console.log("🔍 [optimizeText] API key exists:", !!apiKey);
   console.log("🔍 [optimizeText] API key length:", apiKey ? apiKey.length : 0);
+  console.log(
+    "🔍 [optimizeText] Current model:",
+    process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free"
+  );
   console.log("🔍 [optimizeText] process.cwd():", process.cwd());
 
   if (!apiKey) {
@@ -46,7 +48,7 @@ export async function optimizeText(input) {
     const targetTokens = Math.max(20, Math.floor(inputTokens * 0.5));
 
     const completion = await openai.chat.completions.create({
-      model: "meta-llama/llama-4-maverick:free",
+      model: process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free",
       messages: [
         {
           role: "system",
