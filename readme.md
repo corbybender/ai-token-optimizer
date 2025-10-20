@@ -18,6 +18,14 @@ A local server that watches your code repository, generates AI-powered summaries
 npm install -g ai-token-optimizer
 ```
 
+### Local Development
+
+```bash
+git clone https://github.com/corbybender/ai-token-optimizer.git
+cd ai-token-optimizer
+npm install
+```
+
 ## Configuration
 
 Create a `.env` file in the root directory of **your project** (not in the ai-token-optimizer directory):

@@ -1,6 +1,6 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Local server that watches your repo, generates incremental summaries, and exposes an HTTP endpoint to return token-optimized context for LLMs",
   "type": "module",
   "main": "src/server.js",
@@ -24,6 +24,14 @@
   ],
   "author": "Corby Bender",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/corbybender/ai-token-optimizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/corbybender/ai-token-optimizer/issues"
+  },
+  "homepage": "https://github.com/corbybender/ai-token-optimizer#readme",
   "engines": {
     "node": ">=18.0.0"
   },
