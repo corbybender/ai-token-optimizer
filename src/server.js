@@ -149,7 +149,7 @@ app.get("/.well-known/mcp-tool", (req, res) => {
   res.json({
     name: "TokenShrinker",
     description: "Token reduction and summarization service for AI context",
-    version: "0.3.75",
+    version: "0.3.76",
     capabilities: {
       tools: {
         shrink: {
