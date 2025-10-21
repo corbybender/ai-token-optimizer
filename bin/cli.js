@@ -192,13 +192,13 @@ if (cmd === "cleanup-summaries") {
 }
 
 // MCP server mode (when run with --stdio or no args)
-// Note: startMCPServer() should handle its own lifecycle - DO NOT exit here!
 if (!cmd || cmd === "--stdio") {
   const mcpServer = await import(
     pathToFileURL(path.join(packageRoot, "src", "mcp-server.js")).href
   );
   await mcpServer.startMCPServer();
-  // Don't exit - let MCP server handle its own lifecycle
+  // MCP server will run indefinitely, so we never return from here
+  process.exit(0);
 }
 
 // Legacy commands
@@ -218,9 +218,7 @@ if (cmd === "server" || cmd === "start") {
     }
   );
   proc.on("exit", (code) => process.exit(code));
-}
-
-if (cmd === "watch") {
+} else if (cmd === "watch") {
   const proc = spawn(
     process.execPath,
     [path.join(packageRoot, "src", "watcher.js")],
