@@ -1,0 +1,81 @@
+AI Agent (MCP host)  -->  MCP request  -->  TokenShrinker (MCP server)
+       (chat text)                   (shrink / summarize / select)
+                                          |
+                                          V
+                             compressed/context (returned)
+                                          |
+                                          V
+                       Agent forwards compressed payload to model backend
+
+Benefits:
+
+Single trusted place to compress repo/long context.
+
+Works for any MCP-capable AI (no per-extension wiring).
+
+Central policies: retention, redaction, model-selection, caching, rate limits.
+
+MCP references / overview: Anthropic/ModelContextProtocol and community resources.
+
+What your MCP server should expose (capabilities)
+
+Minimal capability to start:
+
+An MCP “tool” endpoint (HTTP) that accepts MCP-style calls (JSON payloads) and returns shrinked content.
+
+Endpoints:
+
+POST /mcp/invoke — generic invoke for tool methods (shrink, summarize, fetch-summary)
+
+GET /.well-known/mcp-tool (or similar) — optional tool manifest describing your tool (name, methods, auth).
+
+Internals:
+
+Use your existing optimizeText() + getRepoSummary() logic.
+
+File-safe summaries, safe cache (we fixed Windows issues).
+
+Config: model selection via env var, rate limits, allowed hosts, logging level.
+
+MCP is JSON-RPC style and many hosts expect JSON-over-HTTP. See MCP spec and examples.
+
+Authentication & Security (very important)
+
+MCP servers can expose sensitive data — plan for:
+
+Mutual TLS or at least HTTPS for transport.
+
+API keys or signed JWTs for each client (AI host) that uses your server. Use x-mcp-api-key header or OAuth flow.
+
+Per-client allowlist: only allow known MCP hosts.
+
+Audit logs and rate limiting to protect your LLM credits.
+
+Data retention & redaction policies: don’t store raw input unless necessary; if you must, encrypt at rest.
+Security considerations are a top concern in MCP discussions.
+
+Caching, embedding retrieval & selective context (how to actually reduce tokens)
+
+To minimize tokens effectively, your server should implement multiple strategies:
+
+Per-file summaries (you already do) — disk cache summaries/.
+
+Embeddings + similarity — compute embeddings for files/summaries and at runtime retrieve only top-K relevant chunks. This reduces tokens dramatically.
+
+Delta updates — watcher updates only changed files.
+
+Prompt scaffolding — return a structured compressed context, not raw text (e.g., bullet list of functions changed, top imports, API surface).
+
+Compression/encoding — you can compress text (gzip/base64) if the host supports decompressing it; usually sending a short summary is better than compressed raw text.
+
+Policy-driven pruning — only include items matching classifier (relevance to question, file path, recent edits).
+
+If you want, I can add an embeddings + vector search stub (local FAISS-like or use a vector DB) so your MCP server returns ranked snippets instead of whole summaries.
+
+Integration with AI hosts (how agents call you)
+
+If the host supports MCP natively, it will call your tool using a tool invocation mechanism. Provide your manifest and auth details.
+
+For hosts that don’t support MCP yet, you can offer a proxy endpoint that developer extensions can call (like your earlier local HTTP endpoint).
+
+Document the request/response format in your README and include example cURL and Postman calls.

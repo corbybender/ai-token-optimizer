@@ -4,10 +4,13 @@ import express from "express";
 import bodyParser from "body-parser";
 import { summarizeFile } from "./summarizer.js";
 import "./watcher.js"; // start watcher in the same process
+import { optimizeText } from "./optimizeText.js";
+import { getRepoSummary } from "./getRepoSummary.js";
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 // Explicitly load .env from the user's current working directory
 const envPath = path.join(process.cwd(), ".env");
@@ -79,8 +82,269 @@ async function killPortProcess(port) {
 
 await killPortProcess(PORT);
 
+// Middleware for MCP authentication and security
+const ALLOWED_CLIENTS = process.env.MCP_ALLOWED_CLIENTS
+  ? process.env.MCP_ALLOWED_CLIENTS.split(",")
+  : [];
+
+const mcpAuthMiddleware = (req, res, next) => {
+  const apiKey = req.headers["x-mcp-api-key"];
+  const clientIp = req.ip || req.connection.remoteAddress;
+
+  console.log(
+    `🔐 MCP Auth - IP: ${clientIp}, Key: ${apiKey ? "present" : "missing"}`
+  );
+
+  // If ALLOWED_CLIENTS is configured, validate client
+  if (ALLOWED_CLIENTS.length > 0) {
+    if (
+      !ALLOWED_CLIENTS.includes(clientIp) &&
+      !ALLOWED_CLIENTS.includes("all")
+    ) {
+      console.log(`❌ MCP Auth - Rejected client IP: ${clientIp}`);
+      return res.status(403).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32000,
+          message: "Access denied for this client",
+        },
+        id: req.body?.id || null,
+      });
+    }
+  }
+
+  // Validate API key if provided
+  if (apiKey && ALLOWED_CLIENTS.length > 0) {
+    const validKey = crypto
+      .createHash("sha256")
+      .update(apiKey + process.env.MCP_API_KEY_SALT || "")
+      .digest("hex");
+    // Basic validation - in production, use proper key storage/validation
+    if (
+      !ALLOWED_CLIENTS.includes(clientIp) &&
+      !ALLOWED_CLIENTS.includes("all")
+    ) {
+      if (validKey !== process.env.MCP_VALID_API_KEY_HASH) {
+        console.log(`❌ MCP Auth - Invalid API key`);
+        return res.status(401).json({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Invalid API key",
+          },
+          id: req.body?.id || null,
+        });
+      }
+    }
+  }
+
+  next();
+};
+
 app.use(bodyParser.json({ limit: "5mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// MCP Tool Manifest endpoint
+app.get("/.well-known/mcp-tool", (req, res) => {
+  res.json({
+    name: "TokenShrinker",
+    description: "Token reduction and summarization service for AI context",
+    version: "1.0.0",
+    capabilities: {
+      tools: {
+        shrink: {
+          description: "Compress text content to reduce token usage",
+          parameters: {
+            type: "object",
+            properties: {
+              text: {
+                type: "string",
+                description: "Text content to compress",
+              },
+              maxLength: {
+                type: "number",
+                description: "Maximum length of compressed output (optional)",
+              },
+            },
+            required: ["text"],
+          },
+        },
+        summarize: {
+          description: "Generate a summary of provided content",
+          parameters: {
+            type: "object",
+            properties: {
+              content: {
+                type: "string",
+                description: "Content to summarize",
+              },
+              type: {
+                type: "string",
+                enum: ["text", "file", "repo"],
+                description: "Type of content being summarized",
+              },
+            },
+            required: ["content", "type"],
+          },
+        },
+        "fetch-summary": {
+          description: "Retrieve repository summaries from cache",
+          parameters: {
+            type: "object",
+            properties: {
+              repoPath: {
+                type: "string",
+                description:
+                  "Path to repository (optional, uses current working directory)",
+              },
+            },
+          },
+        },
+      },
+    },
+    auth: {
+      type: "header",
+      header: "x-mcp-api-key",
+      description: "API key for authentication",
+    },
+    contact: {
+      name: "TokenShrinker MCP Server",
+      url: "http://localhost:" + PORT + "/test",
+    },
+  });
+});
+
+// MCP Tool Invocation endpoint
+app.post("/mcp/invoke", mcpAuthMiddleware, async (req, res) => {
+  try {
+    const { jsonrpc, method, params, id } = req.body;
+
+    // Validate JSON-RPC 2.0 format
+    if (jsonrpc !== "2.0" || !method) {
+      return res.status(400).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32600,
+          message: "Invalid Request - must be JSON-RPC 2.0 format",
+        },
+        id: id || null,
+      });
+    }
+
+    console.log(`🔧 MCP Invoke - Method: ${method}, ID: ${id}`);
+
+    let result;
+
+    switch (method) {
+      case "shrink":
+        if (!params?.text) {
+          return res.status(400).json({
+            jsonrpc: "2.0",
+            error: {
+              code: -32602,
+              message: "Invalid params - 'text' parameter required",
+            },
+            id,
+          });
+        }
+
+        const shrinkResult = await optimizeText(params.text);
+        result = {
+          compressed: shrinkResult.summary || shrinkResult.error,
+          originalLength: shrinkResult.original_length,
+          compressedLength: shrinkResult.compressed_length,
+          compressionRatio: shrinkResult.compression_ratio,
+          success: !shrinkResult.error,
+        };
+        break;
+
+      case "summarize":
+        if (!params?.content || !params?.type) {
+          return res.status(400).json({
+            jsonrpc: "2.0",
+            error: {
+              code: -32602,
+              message:
+                "Invalid params - 'content' and 'type' parameters required",
+            },
+            id,
+          });
+        }
+
+        if (params.type === "repo") {
+          const repoSummary = await getRepoSummary();
+          result = {
+            summary: repoSummary,
+            type: "repository",
+            timestamp: new Date().toISOString(),
+            cached: true,
+          };
+        } else if (params.type === "file") {
+          const fileSummary = await summarizeFile(params.content);
+          result = {
+            summary: fileSummary.summary || fileSummary.error,
+            filePath: params.content,
+            method: fileSummary.method,
+            timestamp: fileSummary.timestamp,
+            success: !fileSummary.error,
+          };
+        } else {
+          // Text summary
+          const textSummary = await optimizeText(params.content);
+          result = {
+            summary: textSummary.summary || textSummary.error,
+            originalLength: textSummary.original_length,
+            compressedLength: textSummary.compressed_length,
+            compressionRatio: textSummary.compression_ratio,
+            success: !textSummary.error,
+          };
+        }
+        break;
+
+      case "fetch-summary":
+        const repoPath = params?.repoPath || process.cwd();
+        const summaryResult = await getRepoSummary();
+        result = {
+          summaries: summaryResult,
+          repoPath: repoPath,
+          timestamp: new Date().toISOString(),
+          cacheStatus:
+            summaryResult === "No repository summaries available yet."
+              ? "empty"
+              : "available",
+        };
+        break;
+
+      default:
+        return res.status(400).json({
+          jsonrpc: "2.0",
+          error: {
+            code: -32601,
+            message: `Method not found: ${method}`,
+          },
+          id,
+        });
+    }
+
+    console.log(`✅ MCP Invoke - Method ${method} completed`);
+    res.json({
+      jsonrpc: "2.0",
+      result: result,
+      id,
+    });
+  } catch (error) {
+    console.error(`❌ MCP Invoke error:`, error.message);
+    res.status(500).json({
+      jsonrpc: "2.0",
+      error: {
+        code: -32603,
+        message: "Internal error",
+        data: error.message,
+      },
+      id: req.body?.id || null,
+    });
+  }
+});
 
 // Browser test page
 app.get("/test", (req, res) => {
@@ -378,7 +642,6 @@ app.post("/v1/messages", async (req, res) => {
 });
 
 // Test endpoint: summarize arbitrary text
-import { optimizeText } from "./optimizeText.js";
 app.post("/summarize-text", async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: "Missing text parameter" });
@@ -442,6 +705,14 @@ app.post("/summarize-text", async (req, res) => {
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`🚀 TokenShrinker server running at http://localhost:${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(
+    `🚀 TokenShrinker MCP Server running at http://localhost:${PORT}`
+  );
+  console.log(
+    `🔧 MCP Tool Manifest: http://localhost:${PORT}/.well-known/mcp-tool`
+  );
+  console.log(
+    `🔧 MCP Tool Invocation: POST http://localhost:${PORT}/mcp/invoke`
+  );
+});

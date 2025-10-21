@@ -1,7 +1,7 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.3.72",
-  "description": "Transparent proxy that optimizes AI prompts to reduce token usage. Works with any OpenRouter-compatible tool (Continue, Cline, Aider, etc.)",
+  "version": "0.3.73",
+  "description": "Model Context Protocol (MCP) server that provides AI context compression tools. Reduces token usage by intelligently summarizing text, files, and repositories. Compatible with Claude Desktop, Cursor, and other MCP clients. Also works as transparent proxy for OpenRouter and Anthropic APIs.",
   "type": "module",
   "main": "src/server.js",
   "bin": {
@@ -20,7 +20,15 @@
     "summarization",
     "openai",
     "tokens",
-    "compression"
+    "compression",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "anthropic",
+    "cursor",
+    "ai-tools",
+    "token-reduction",
+    "context-compression"
   ],
   "author": "Corby Bender",
   "license": "MIT",

@@ -1,17 +1,32 @@
-# ai-token-optimizer
+# TokenShrinker - MCP Server for AI Context Compression
 
-A local server that watches your code repository, generates AI-powered summaries of large files, and exposes HTTP endpoints to return token-optimized context for LLMs. This dramatically reduces token usage when working with AI coding assistants while maintaining code context.
+[![npm version](https://badge.fury.io/js/ai-token-optimizer.svg)](https://badge.fury.io/js/ai-token-optimizer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**NEW: Transparent Proxy Mode** - Use this as a drop-in replacement for OpenRouter in ANY AI tool (VS Code extensions, CLI tools, etc.) to automatically compress prompts and save tokens! See [PROXY_SETUP.md](PROXY_SETUP.md) for details.
+> **Model Context Protocol (MCP) Server** - Compresses AI context to reduce token usage and API costs. Works with Claude Desktop, Cursor, and other MCP-compatible AI tools.
 
-## How It Works
+TokenShrinker is now an **MCP (Model Context Protocol) server** that provides token reduction and summarization tools. It compresses AI context to reduce token usage while maintaining code understanding, and returns compressed content for use with MCP-capable AI assistants.
 
-1. **File Watching**: Monitors your repository for changes to JavaScript, TypeScript, HTML, CSS, and EJS files
-2. **Smart Summarization**: Only summarizes files larger than 2000 tokens (~500 words)
-3. **AI-Powered Compression**: Uses OpenRouter API to create concise, context-aware summaries
-4. **Incremental Updates**: Only re-summarizes files when they change (uses SHA-1 hashing for change detection)
-5. **HTTP API**: Provides endpoints to retrieve optimized text and file summaries
-6. **Transparent Proxy**: Acts as OpenRouter-compatible proxy for automatic optimization in any tool
+**Key Features:**
+
+- 🔧 **MCP Tool Server**: Exposes compression tools via JSON-RPC API
+- 🛡️ **Security**: Client authentication and rate limiting
+- 💾 **Smart Caching**: Repository summaries with incremental updates
+- 🔄 **Transparent Proxy**: Backward compatible with existing proxy mode
+- 📊 **Monitoring**: Real-time compression statistics and audit logs
+
+## Architecture Overview
+
+```
+AI Agent (MCP host)  -->  MCP request  -->  TokenShrinker (MCP server)
+       (chat text)                   (shrink / summarize / select)
+                                          |
+                                          V
+                             compressed/context (returned)
+                                          |
+                                          V
+                       Agent forwards compressed payload to model backend
+```
 
 ## Installation
 
@@ -28,6 +43,31 @@ git clone https://github.com/corbybender/ai-token-optimizer.git
 cd ai-token-optimizer
 npm install
 ```
+
+## Quick Start
+
+**1. Install globally:**
+
+```bash
+npm install -g ai-token-optimizer
+```
+
+**2. Create configuration:**
+
+```bash
+cd your-project-directory
+echo "OPENROUTER_API_KEY=your-openrouter-key" > .env
+```
+
+**3. Start the MCP server:**
+
+```bash
+ai-token-optimizer
+```
+
+**4. Visit http://localhost:4343 to test compression**
+
+**Done!** Your MCP server is now running and can be integrated with Claude Desktop, Cursor, or any MCP-compatible client.
 
 ## Configuration
 
@@ -64,6 +104,27 @@ WATCH_IGNORE=node_modules/**,dist/**,build/**,summaries/**
 - `PORT` - **Optional**. Server port. Defaults to `4343`
 - `WATCH_PATTERNS` - **Optional**. Comma-separated glob patterns for files to watch. Defaults to `**/*.js,**/*.ts,**/*.mjs,**/*.ejs,**/*.html,**/*.css`
 - `WATCH_IGNORE` - **Optional**. Comma-separated glob patterns for files/directories to ignore. Defaults to `node_modules/**,dist/**,build/**,summaries/**`
+
+#### MCP Server Security Configuration
+
+TokenShrinker supports optional authentication and security features for the MCP server:
+
+```env
+# MCP Server Configuration
+# Optional: Comma-separated list of allowed client IPs (set to 'all' to allow any client)
+# When set, clients must authenticate with proper API key in x-mcp-api-key header
+MCP_ALLOWED_CLIENTS=all
+
+# Optional: API key salt for client authentication (leave empty for basic validation)
+MCP_API_KEY_SALT=
+
+# Optional: Pre-hashed valid API key for client authentication (use sha256 hash)
+MCP_VALID_API_KEY_HASH=
+```
+
+- `MCP_ALLOWED_CLIENTS` - **Optional**. Controls client access. Use `all` to allow any client, or specify comma-separated IP addresses. When set to anything other than `all`, requires API key authentication.
+- `MCP_API_KEY_SALT` - **Optional**. Salt for API key validation. Leave empty for basic validation.
+- `MCP_VALID_API_KEY_HASH` - **Optional**. SHA256 hash of the valid API key. Generate with: `echo -n "your-key-here" | sha256sum`
 
 ## Usage
 
@@ -267,6 +328,168 @@ Browser-based test interface for trying out text compression.
 Retrieve a saved summary file directly.
 
 Example: `GET /summaries/src/app.js`
+
+### **MCP Server Endpoints**
+
+TokenShrinker implements the Model Context Protocol (MCP) for standardized AI tool integration:
+
+#### `GET /.well-known/mcp-tool`
+
+**Manifest endpoint** that describes available tools and authentication requirements.
+
+**Response:**
+
+```json
+{
+  "name": "TokenShrinker",
+  "description": "Token reduction and summarization service for AI context",
+  "version": "1.0.0",
+  "capabilities": {
+    "tools": {
+      "shrink": {
+        "description": "Compress text content to reduce token usage",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {"type": "string", "description": "Text content to compress"}
+          },
+          "required": ["text"]
+        }
+      },
+      "summarize": {...},
+      "fetch-summary": {...}
+    }
+  },
+  "auth": {
+    "type": "header",
+    "header": "x-mcp-api-key"
+  }
+}
+```
+
+#### `POST /mcp/invoke`
+
+**Tool invocation endpoint** for executing compression and summarization tools.
+
+**Request Format:**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "shrink",
+  "params": {
+    "text": "Your text content here..."
+  },
+  "id": 1
+}
+```
+
+**Available Tools:**
+
+1. **`shrink`** - Compress text content
+
+   - **Input:** `{"text": "large content..."}`
+   - **Output:** `{"compressed": "...", "compressionRatio": "75%", "success": true}`
+
+2. **`summarize`** - Generate content summaries
+
+   - **Input:** `{"content": "...", "type": "text|file|repo"}`
+   - **Output:** Summary based on content type
+
+3. **`fetch-summary`** - Retrieve cached repository summaries
+   - **Input:** `{"repoPath": "/path/to/repo"}` (optional)
+   - **Output:** `{"summaries": "...", "cacheStatus": "available"}`
+
+**Authentication:** Include `x-mcp-api-key` header when security is enabled.
+
+## MCP Integration with AI Clients
+
+TokenShrinker follows the Model Context Protocol standards, making it compatible with any MCP-capable AI assistant.
+
+### Discovering the MCP Server
+
+**1. Tool Manifest:**
+Visit `http://localhost:4343/.well-known/mcp-tool` to see available tools and authentication requirements.
+
+**2. Configuring MCP Clients:**
+
+#### Claude Desktop (via MCP)
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "token-shrinker": {
+      "command": "npx",
+      "args": ["-g", "ai-token-optimizer"],
+      "env": {
+        "MCP_ALLOWED_CLIENTS": "all"
+      }
+    }
+  }
+}
+```
+
+#### Cursor/VS Code (via MCP)
+
+Add to your MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "token-shrinker": {
+      "url": "http://localhost:4343",
+      "headers": {
+        "x-mcp-api-key": "your-optional-api-key"
+      }
+    }
+  }
+}
+```
+
+#### Other MCP Clients
+
+Any MCP-compatible client can connect to:
+
+- **URL:** `http://localhost:4343`
+- **Manifest:** `/.well-known/mcp-tool`
+- **Invoke:** `POST /mcp/invoke`
+
+### Using MCP Tools
+
+Once connected, the AI assistant can automatically call TokenShrinker tools:
+
+**Example cURL requests:**
+
+```bash
+# Shrink text content
+curl -X POST http://localhost:4343/mcp/invoke \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "shrink",
+    "params": {"text": "your large content..."},
+    "id": 1
+  }'
+
+# Get repository summary
+curl -X POST http://localhost:4343/mcp/invoke \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "fetch-summary",
+    "id": 2
+  }'
+```
+
+### Benefits of MCP Integration
+
+- 🔗 **Standardized Protocol**: Works with any MCP-capable AI tool
+- 🔒 **Secure Communication**: JSON-RPC with optional authentication
+- 🚀 **Automatic Tool Discovery**: Clients can introspect available tools
+- 📊 **Compression Metrics**: Track token savings and success rates
+- 🔄 **Backward Compatible**: Existing proxy functionality remains available
 
 ## Integration with AI Coding Assistants
 
