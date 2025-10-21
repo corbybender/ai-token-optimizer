@@ -474,7 +474,18 @@ export async function startMCPServer() {
 
   // Keep the process alive indefinitely by setting a repeating timer
   // (required for long-running MCP servers)
-  setInterval(() => {
-    // Keep-alive timer - does nothing but prevent process exit
-  }, 10000);
+  console.error("DEBUG: Setting up keep-alive timer");
+  const keepAlive = setInterval(() => {
+    console.error("DEBUG: Keep-alive timer tick");
+  }, 5000); // More frequent for debugging
+
+  // Clean up on exit
+  process.on("exit", () => {
+    console.error("DEBUG: MCP server process exiting");
+    clearInterval(keepAlive);
+  });
+
+  console.error(
+    "DEBUG: Keep-alive setup complete - MCP server should run forever"
+  );
 }

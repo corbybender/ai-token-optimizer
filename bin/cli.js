@@ -197,17 +197,12 @@ if (!cmd || cmd === "--stdio") {
     pathToFileURL(path.join(packageRoot, "src", "mcp-server.js")).href
   );
   await mcpServer.startMCPServer();
-  // MCP server will run indefinitely, so we never return from here
-  process.exit(0);
-}
-
-// Legacy commands
-if (cmd === "init") {
+  // MCP server will run indefinitely via event listeners, don't exit
+} else if (cmd === "init") {
+  // Legacy commands
   console.log("Initializing token-shrinker MCP server...");
   process.exit(0);
-}
-
-if (cmd === "server" || cmd === "start") {
+} else if (cmd === "server" || cmd === "start") {
   // Run the traditional HTTP server
   const proc = spawn(
     process.execPath,

@@ -19,18 +19,12 @@ console.log("1️⃣ Starting MCP server...");
 
 // Start the token-shrinker MCP server
 const tokenShrinker = spawn("node", [path.join(__dirname, "bin", "cli.js")], {
-  stdio: ["pipe", "pipe", "pipe"],
+  stdio: ["pipe", "pipe", "pipe"], // pipe stdin so we can write to it
   cwd: __dirname,
 });
 
-// Keep stdin open to prevent MCP server from exiting
+// Handle stdin errors gracefully
 tokenShrinker.stdin.on("error", () => {}); // Ignore errors
-
-// Immediately write to stdin to keep it open
-setTimeout(() => {
-  // Write a dummy character that won't parse as JSON
-  tokenShrinker.stdin.write(" ");
-}, 100);
 
 // Set a timeout to kill the test after 30 seconds
 const timeout = setTimeout(() => {
