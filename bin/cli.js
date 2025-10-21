@@ -186,10 +186,32 @@ if (cmd === "cleanup-summaries") {
   process.exit(0);
 }
 
+// MCP server mode (when run with --stdio or no args)
+if (!cmd || cmd === "--stdio") {
+  const mcpServer = await import(
+    pathToFileURL(path.join(packageRoot, "src", "mcp-server.js")).href
+  );
+  await mcpServer.startMCPServer();
+  process.exit(0);
+}
+
 // Legacy commands
 if (cmd === "init") {
   console.log("Initializing ai-token-optimizer skeleton...");
   process.exit(0);
+}
+
+if (cmd === "server" || cmd === "start") {
+  // Run the traditional HTTP server
+  const proc = spawn(
+    process.execPath,
+    [path.join(packageRoot, "src", "server.js")],
+    {
+      stdio: "inherit",
+      cwd: process.cwd(),
+    }
+  );
+  proc.on("exit", (code) => process.exit(code));
 }
 
 if (cmd === "watch") {
@@ -203,14 +225,8 @@ if (cmd === "watch") {
   );
   proc.on("exit", (code) => process.exit(code));
 } else {
-  // Default: start the server (handles 'start' command or no command)
-  const proc = spawn(
-    process.execPath,
-    [path.join(packageRoot, "src", "server.js")],
-    {
-      stdio: "inherit",
-      cwd: process.cwd(),
-    }
-  );
-  proc.on("exit", (code) => process.exit(code));
+  // Show help if command not recognized
+  console.log(`Unknown command: ${cmd}`);
+  console.log(`Run 'ai-token-optimizer --help' for usage information`);
+  process.exit(1);
 }

@@ -1,11 +1,11 @@
 {
-  "name": "ai-token-optimizer",
-  "version": "0.3.76",
-  "description": "Model Context Protocol (MCP) server that provides AI context compression tools. Reduces token usage by intelligently summarizing text, files, and repositories. Compatible with Claude Desktop, Cursor, and other MCP clients. Also works as transparent proxy for OpenRouter and Anthropic APIs.",
+  "name": "token-shrinker",
+  "version": "1.0.0",
+  "description": "Model Context Protocol (MCP) server for compressing AI context to reduce token usage. Provides tools to shrink text, summarize files, and cache repository content.",
   "type": "module",
-  "main": "src/server.js",
+  "main": "src/mcp-server.js",
   "bin": {
-    "ai-token-optimizer": "./bin/cli.js"
+    "token-shrinker": "./bin/cli.js"
   },
   "scripts": {
     "start": "node src/server.js",
@@ -36,12 +36,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/corbybender/ai-token-optimizer.git"
+    "url": "https://github.com/corbybender/token-shrinker.git"
   },
   "bugs": {
-    "url": "https://github.com/corbybender/ai-token-optimizer/issues"
+    "url": "https://github.com/corbybender/token-shrinker/issues"
   },
-  "homepage": "https://github.com/corbybender/ai-token-optimizer#readme",
+  "homepage": "https://github.com/corbybender/token-shrinker#readme",
   "engines": {
     "node": ">=18.0.0"
   },
