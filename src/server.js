@@ -149,7 +149,7 @@ app.get("/.well-known/mcp-tool", (req, res) => {
   res.json({
     name: "TokenShrinker",
     description: "Token reduction and summarization service for AI context",
-    version: "1.0.0",
+    version: "0.3.75",
     capabilities: {
       tools: {
         shrink: {
@@ -212,6 +212,256 @@ app.get("/.well-known/mcp-tool", (req, res) => {
       url: "http://localhost:" + PORT + "/test",
     },
   });
+});
+
+// MCP Tools List endpoint (standard MCP protocol)
+app.post("/mcp", (req, res) => {
+  try {
+    const { jsonrpc, method, id } = req.body;
+
+    if (jsonrpc !== "2.0" || !method) {
+      return res.status(400).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32600,
+          message: "Invalid Request - must be JSON-RPC 2.0 format",
+        },
+        id: id || null,
+      });
+    }
+
+    console.log(`🔧 MCP Request - Method: ${method}, ID: ${id}`);
+
+    switch (method) {
+      case "tools/list":
+        return res.json({
+          jsonrpc: "2.0",
+          id,
+          result: {
+            tools: [
+              {
+                name: "shrink",
+                description: "Compress text content to reduce token usage",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    text: {
+                      type: "string",
+                      description: "Text content to compress",
+                    },
+                    maxLength: {
+                      type: "number",
+                      description:
+                        "Maximum length of compressed output (optional)",
+                    },
+                  },
+                  required: ["text"],
+                },
+              },
+              {
+                name: "summarize",
+                description: "Generate a summary of provided content",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    content: {
+                      type: "string",
+                      description: "Content to summarize",
+                    },
+                    type: {
+                      type: "string",
+                      enum: ["text", "file", "repo"],
+                      description: "Type of content being summarized",
+                    },
+                  },
+                  required: ["content", "type"],
+                },
+              },
+              {
+                name: "fetch-summary",
+                description: "Retrieve repository summaries from cache",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    repoPath: {
+                      type: "string",
+                      description:
+                        "Path to repository (optional, uses current working directory)",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        });
+
+      case "tools/call":
+        const { name, arguments: args } = req.body.params || {};
+
+        if (name === "shrink") {
+          if (!args?.text) {
+            return res.status(400).json({
+              jsonrpc: "2.0",
+              error: {
+                code: -32602,
+                message: "Invalid params - 'text' parameter required",
+              },
+              id,
+            });
+          }
+
+          optimizeText(args.text)
+            .then((result) => {
+              res.json({
+                jsonrpc: "2.0",
+                id,
+                result: {
+                  compressedText: result.summary || result.error,
+                  originalLength: result.original_length,
+                  compressedLength: result.compressed_length,
+                  compressionRatio: result.compression_ratio,
+                  success: !result.error,
+                },
+              });
+            })
+            .catch((error) => {
+              res.status(500).json({
+                jsonrpc: "2.0",
+                error: {
+                  code: -32603,
+                  message: "Internal error",
+                  data: error.message,
+                },
+                id,
+              });
+            });
+          return;
+        }
+
+        if (name === "summarize") {
+          if (!args?.content || !args?.type) {
+            return res.status(400).json({
+              jsonrpc: "2.0",
+              error: {
+                code: -32602,
+                message:
+                  "Invalid params - 'content' and 'type' parameters required",
+              },
+              id,
+            });
+          }
+
+          let summaryPromise;
+          if (args.type === "repo") {
+            summaryPromise = getRepoSummary();
+          } else if (args.type === "file") {
+            summaryPromise = summarizeFile(args.content);
+          } else {
+            summaryPromise = optimizeText(args.content);
+          }
+
+          summaryPromise
+            .then((result) => {
+              if (args.type === "repo") {
+                return {
+                  content: result,
+                  method: "repo",
+                  success: true,
+                  cached: true,
+                };
+              } else if (args.type === "file") {
+                return {
+                  content: result.summary || result.error,
+                  method: result.method,
+                  success: !result.error,
+                };
+              } else {
+                return {
+                  content: result.summary || result.error,
+                  originalLength: result.original_length,
+                  compressedLength: result.compressed_length,
+                  compressionRatio: result.compression_ratio,
+                  success: !result.error,
+                };
+              }
+            })
+            .then((result) => {
+              res.json({
+                jsonrpc: "2.0",
+                id,
+                result,
+              });
+            })
+            .catch((error) => {
+              res.status(500).json({
+                jsonrpc: "2.0",
+                error: {
+                  code: -32603,
+                  message: "Internal error",
+                  data: error.message,
+                },
+                id,
+              });
+            });
+          return;
+        }
+
+        if (name === "fetch-summary") {
+          getRepoSummary()
+            .then((summaries) => {
+              res.json({
+                jsonrpc: "2.0",
+                id,
+                result: {
+                  summaries,
+                  repoPath: args?.repoPath || process.cwd(),
+                  timestamp: new Date().toISOString(),
+                  cacheStatus:
+                    summaries === "No repository summaries available yet."
+                      ? "empty"
+                      : "available",
+                },
+              });
+            })
+            .catch((error) => {
+              res.status(500).json({
+                jsonrpc: "2.0",
+                error: {
+                  code: -32603,
+                  message: "Internal error",
+                  data: error.message,
+                },
+                id,
+              });
+            });
+          return;
+        }
+
+        return res.status(400).json({
+          jsonrpc: "2.0",
+          error: { code: -32601, message: `Method not found: ${name}` },
+          id,
+        });
+
+      default:
+        return res.status(400).json({
+          jsonrpc: "2.0",
+          error: { code: -32601, message: `Method not found: ${method}` },
+          id,
+        });
+    }
+  } catch (error) {
+    console.error(`❌ MCP error:`, error.message);
+    res.status(500).json({
+      jsonrpc: "2.0",
+      error: {
+        code: -32603,
+        message: "Internal error",
+        data: error.message,
+      },
+      id: req.body?.id || null,
+    });
+  }
 });
 
 // MCP Tool Invocation endpoint

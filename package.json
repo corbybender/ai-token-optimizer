@@ -1,6 +1,6 @@
 {
   "name": "ai-token-optimizer",
-  "version": "0.3.73",
+  "version": "0.3.75",
   "description": "Model Context Protocol (MCP) server that provides AI context compression tools. Reduces token usage by intelligently summarizing text, files, and repositories. Compatible with Claude Desktop, Cursor, and other MCP clients. Also works as transparent proxy for OpenRouter and Anthropic APIs.",
   "type": "module",
   "main": "src/server.js",
@@ -9,7 +9,9 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "watch": "node src/watcher.js"
+    "watch": "node src/watcher.js",
+    "prepublishOnly": "node scripts/bump-version.js",
+    "version:bump": "node scripts/bump-version.js"
   },
   "keywords": [
     "ai",
