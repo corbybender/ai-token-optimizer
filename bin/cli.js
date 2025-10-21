@@ -19,36 +19,41 @@ const args = process.argv.slice(3);
 
 // Version command
 if (cmd === "--version" || cmd === "-v") {
-  console.log(`ai-token-optimizer v${packageJson.version}`);
+  console.log(`token-shrinker v${packageJson.version}`);
   process.exit(0);
 }
 
 // Help command
 if (cmd === "--help" || cmd === "-h" || cmd === "help" || cmd === "-help") {
   console.log(`
-ai-token-optimizer v${packageJson.version}
+token-shrinker v${packageJson.version}
 
 Usage:
-  ai-token-optimizer                    Start the proxy server
-  ai-token-optimizer start              Start the proxy server (alias)
-  ai-token-optimizer setup <tool>       Auto-configure a tool to use the proxy
-  ai-token-optimizer run <command>      Run a command with proxy enabled
-  ai-token-optimizer status             Show current configuration status
-  ai-token-optimizer cleanup            Remove all configurations
-  ai-token-optimizer cleanup-summaries  Remove unwanted summary files
-  ai-token-optimizer --version, -v      Show version
-  ai-token-optimizer --help, -h         Show this help
+  token-shrinker                           Start MCP server (default)
+  token-shrinker server                    Start HTTP proxy server
+  token-shrinker start                     Alias for server
+  token-shrinker setup <tool>              Auto-configure tool to use proxy
+  token-shrinker run <command>             Run command with proxy enabled
+  token-shrinker status                    Show current configuration status
+  token-shrinker cleanup                   Remove all configurations
+  token-shrinker cleanup-summaries         Remove unwanted summary files
+  token-shrinker --version, -v             Show version
+  token-shrinker --help, -h                Show this help
 
-Setup Examples:
-  ai-token-optimizer setup continue     Configure Continue.dev (OpenRouter free models)
-  ai-token-optimizer setup cline        Configure Cline (OpenRouter free models)
-  ai-token-optimizer setup aider        Configure Aider (OpenRouter free models)
+MCP Server (Recommended):
+  # Run MCP server - auto-detected by MCP clients
+  npx token-shrinker
+
+Proxy Setup Examples:
+  token-shrinker setup continue            Configure Continue.dev
+  token-shrinker setup cline               Configure Cline
+  token-shrinker setup aider               Configure Aider
 
 Run Examples:
-  ai-token-optimizer run aider          Run Aider with proxy
-  ai-token-optimizer run "npm start"    Run npm start with proxy
+  token-shrinker run aider                 Run Aider with proxy
+  token-shrinker run "npm start"           Run npm start with proxy
 
-Documentation: https://github.com/corbybender/ai-token-optimizer
+Documentation: https://github.com/corbybender/token-shrinker
   `);
   process.exit(0);
 }
@@ -197,7 +202,7 @@ if (!cmd || cmd === "--stdio") {
 
 // Legacy commands
 if (cmd === "init") {
-  console.log("Initializing ai-token-optimizer skeleton...");
+  console.log("Initializing token-shrinker MCP server...");
   process.exit(0);
 }
 
@@ -227,6 +232,6 @@ if (cmd === "watch") {
 } else {
   // Show help if command not recognized
   console.log(`Unknown command: ${cmd}`);
-  console.log(`Run 'ai-token-optimizer --help' for usage information`);
+  console.log(`Run 'token-shrinker --help' for usage information`);
   process.exit(1);
 }

@@ -129,36 +129,19 @@ export async function startMCPServer() {
     const { id, method, params } = request;
 
     if (method === "tools/list") {
-      console.error(`DEBUG: Processing tools/list request`);
-      console.error(
-        `DEBUG: tools object has ${Object.keys(tools).length} keys`
-      );
-
-      // Check if this is a standard MCP tools/list request
-      // Some clients might expect different response formats
       const toolsArray = Object.values(tools).map((tool) => ({
         name: tool.name,
         description: tool.description || "",
         inputSchema: tool.inputSchema || { type: "object", properties: {} },
       }));
 
-      console.error(
-        `DEBUG: Returning ${toolsArray.length} tools: ${toolsArray
-          .map((t) => t.name)
-          .join(", ")}`
-      );
-
-      // Log the full response for debugging
-      const response = {
+      return {
         jsonrpc: "2.0",
         id,
         result: {
           tools: toolsArray,
         },
       };
-
-      console.error(`DEBUG: Full response:`, JSON.stringify(response));
-      return response;
     }
 
     // Some MCP clients send initialize request first
@@ -415,7 +398,7 @@ export async function startMCPServer() {
     };
   }
 
-  // Handle stdin/stdout communication
+  // Handle stdin/stdout communication (MCP servers must listen indefinitely)
   process.stdin.setEncoding("utf8");
 
   console.error("DEBUG: Setting up stdin/stdout handlers");
@@ -467,18 +450,24 @@ export async function startMCPServer() {
   });
 
   process.stdin.on("end", () => {
+    console.error("DEBUG: stdin ended, MCP server shutting down...");
     process.exit(0);
   });
 
   process.on("SIGINT", () => {
+    console.error("DEBUG: SIGINT received, MCP server shutting down...");
     process.exit(0);
   });
 
   process.on("SIGTERM", () => {
+    console.error("DEBUG: SIGTERM received, MCP server shutting down...");
     process.exit(0);
   });
 
   // Initialize - send server started message to stderr
+  console.error(
+    "DEBUG: MCP Server fully initialized and ready to receive requests"
+  );
   console.error(
     "TokenShrinker MCP Server started and listening for requests..."
   );
