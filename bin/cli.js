@@ -192,12 +192,12 @@ if (cmd === "cleanup-summaries") {
 }
 
 // MCP server mode (when run with --stdio or no args)
+// Note: startMCPServer() should handle its own lifecycle - DO NOT exit here!
 if (!cmd || cmd === "--stdio") {
   const mcpServer = await import(
     pathToFileURL(path.join(packageRoot, "src", "mcp-server.js")).href
   );
-  await mcpServer.startMCPServer();
-  process.exit(0);
+  await mcpServer.startMCPServer(); // This will run indefinitely until MCP client disconnects
 }
 
 // Legacy commands
