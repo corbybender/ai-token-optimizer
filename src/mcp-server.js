@@ -471,4 +471,10 @@ export async function startMCPServer() {
   console.error(
     "TokenShrinker MCP Server started and listening for requests..."
   );
+
+  // Keep the process alive indefinitely by setting a repeating timer
+  // (required for long-running MCP servers)
+  setInterval(() => {
+    // Keep-alive timer - does nothing but prevent process exit
+  }, 10000);
 }

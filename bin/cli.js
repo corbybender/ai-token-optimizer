@@ -197,7 +197,8 @@ if (!cmd || cmd === "--stdio") {
   const mcpServer = await import(
     pathToFileURL(path.join(packageRoot, "src", "mcp-server.js")).href
   );
-  await mcpServer.startMCPServer(); // This will run indefinitely until MCP client disconnects
+  await mcpServer.startMCPServer();
+  // Don't exit - let MCP server handle its own lifecycle
 }
 
 // Legacy commands
