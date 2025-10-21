@@ -5,6 +5,21 @@ import { summarizeFile } from "./summarizer.js";
 
 // MCP server implementation that communicates over stdin/stdout
 
+function getDefaultModelForProvider(provider) {
+  switch (provider.toLowerCase()) {
+    case "openrouter":
+      return "meta-llama/llama-4-maverick:free";
+    case "openai":
+      return "gpt-4o-mini";
+    case "anthropic":
+      return "claude-3-haiku-20240307";
+    case "ollama":
+      return "llama2";
+    default:
+      return "meta-llama/llama-4-maverick:free";
+  }
+}
+
 export async function startMCPServer() {
   const tools = {
     shrink: {
@@ -54,16 +69,46 @@ export async function startMCPServer() {
         },
       },
     },
+    "set-provider": {
+      name: "set-provider",
+      description:
+        "Set your AI provider (openrouter, openai, anthropic, ollama)",
+      inputSchema: {
+        type: "object",
+        properties: {
+          provider: {
+            type: "string",
+            enum: ["openrouter", "openai", "anthropic", "ollama"],
+            description: "AI provider to use for text compression",
+          },
+        },
+        required: ["provider"],
+      },
+    },
+    "set-api-key": {
+      name: "set-api-key",
+      description: "Set your API key for the current provider",
+      inputSchema: {
+        type: "object",
+        properties: {
+          apiKey: {
+            type: "string",
+            description: "API key for your AI provider",
+          },
+        },
+        required: ["apiKey"],
+      },
+    },
     "set-model": {
       name: "set-model",
-      description: "Set your preferred OpenRouter model for text compression",
+      description: "Set your preferred model for the current provider",
       inputSchema: {
         type: "object",
         properties: {
           model: {
             type: "string",
             description:
-              "OpenRouter model identifier (e.g., 'meta-llama/llama-4-maverick:free', 'anthropic/claude-3.5-sonnet')",
+              "Model identifier for your provider (e.g., 'gpt-4o-mini', 'claude-3-haiku-20240307')",
           },
         },
         required: ["model"],
@@ -72,7 +117,7 @@ export async function startMCPServer() {
     "get-config": {
       name: "get-config",
       description:
-        "Get current configuration including API key status and selected model",
+        "Get current configuration including provider, API key status, and selected model",
       inputSchema: {
         type: "object",
         properties: {},
@@ -187,6 +232,55 @@ export async function startMCPServer() {
           };
         }
 
+        if (name === "set-provider") {
+          if (!args?.provider) {
+            throw new Error("Missing required parameter: provider");
+          }
+
+          const validProviders = [
+            "openrouter",
+            "openai",
+            "anthropic",
+            "ollama",
+          ];
+          if (!validProviders.includes(args.provider.toLowerCase())) {
+            throw new Error(
+              `Invalid provider. Must be one of: ${validProviders.join(", ")}`
+            );
+          }
+
+          // Store the preferred provider
+          process.env.USER_PREFERRED_PROVIDER = args.provider.toLowerCase();
+
+          return {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              message: `Provider set to: ${args.provider}`,
+              provider: args.provider,
+              note: "This setting persists for the current session. Set AI_PROVIDER environment variable for permanent configuration.",
+            },
+          };
+        }
+
+        if (name === "set-api-key") {
+          if (!args?.apiKey) {
+            throw new Error("Missing required parameter: apiKey");
+          }
+
+          // Store the API key (could be persisted in future)
+          process.env.USER_API_KEY = args.apiKey;
+
+          return {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              message: "API key set successfully",
+              note: "This setting persists for the current session. Set provider-specific environment variables for permanent configuration (e.g., OPENAI_API_KEY, ANTHROPIC_API_KEY).",
+            },
+          };
+        }
+
         if (name === "set-model") {
           if (!args?.model) {
             throw new Error("Missing required parameter: model");
@@ -201,33 +295,48 @@ export async function startMCPServer() {
             result: {
               message: `Model set to: ${args.model}`,
               model: args.model,
-              note: "This setting persists for the current session. Set OPENROUTER_MODEL environment variable for permanent configuration.",
+              note: "This setting persists for the current session. Set provider-specific model environment variables for permanent configuration.",
             },
           };
         }
 
         if (name === "get-config") {
-          const hasApiKey = !!process.env.OPENROUTER_API_KEY;
+          const provider =
+            process.env.USER_PREFERRED_PROVIDER ||
+            process.env.AI_PROVIDER ||
+            "openrouter";
+
+          const hasApiKey = !!(
+            process.env.USER_API_KEY ||
+            process.env.AI_API_KEY ||
+            process.env.OPENROUTER_API_KEY ||
+            process.env.OPENAI_API_KEY ||
+            process.env.ANTHROPIC_API_KEY ||
+            process.env.OLLAMA_BASE_URL
+          );
+
           const currentModel =
             process.env.USER_PREFERRED_MODEL ||
-            process.env.OPENROUTER_MODEL ||
-            "meta-llama/llama-4-maverick:free";
+            process.env.AI_MODEL ||
+            getDefaultModelForProvider(provider);
 
           return {
             jsonrpc: "2.0",
             id,
             result: {
-              openRouterApiKey: hasApiKey ? "configured" : "missing",
+              provider,
+              apiKeySet: hasApiKey,
               currentModel,
+              userPreferredProvider:
+                process.env.USER_PREFERRED_PROVIDER || null,
               userPreferredModel: process.env.USER_PREFERRED_MODEL || null,
-              defaultModel: process.env.OPENROUTER_MODEL || null,
-              availableModels: [
-                "meta-llama/llama-4-maverick:free",
-                "anthropic/claude-3.5-sonnet",
-                "anthropic/claude-3-haiku",
-                "openai/gpt-4o-mini",
-                "openai/gpt-4o",
-                "meta-llama/llama-3.1-8b-instruct:free",
+              userApiKeySet: !!process.env.USER_API_KEY,
+              availableProviders: ["openrouter", "openai", "anthropic"],
+              supportedProviders: [
+                "openrouter",
+                "openai",
+                "anthropic",
+                "ollama",
               ],
             },
           };

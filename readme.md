@@ -28,29 +28,74 @@ npm install -g token-shrinker
 
 ## Environment Variables
 
-Create a `.env` file in your project directory:
+TokenShrinker supports multiple AI providers! Create a `.env` file in your project directory:
 
 ```bash
-# Required: Your OpenRouter API key
-echo "OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key-here" >> .env
+# Choose your provider (default: openrouter)
+echo "AI_PROVIDER=openrouter" >> .env  # Options: openrouter, openai, anthropic
 
-# Optional: Set your preferred OpenRouter model
-echo "OPENROUTER_MODEL=anthropic/claude-3.5-sonnet" >> .env
+# Provider-specific API keys (choose one based on your AI_PROVIDER)
+echo "OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key-here" >> .env
+# OR
+echo "OPENAI_API_KEY=sk-your-openai-key-here" >> .env
+# OR
+echo "ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here" >> .env
+
+# Optional: Set your preferred model for your provider
+echo "AI_MODEL=anthropic/claude-3.5-sonnet" >> .env
 ```
 
 **Environment Variables:**
 
-- **Required**: `OPENROUTER_API_KEY` - Your OpenRouter API key (get from [openrouter.ai](https://openrouter.ai))
-- **Optional**: `OPENROUTER_MODEL` - Preferred compression model
-  - Default: `meta-llama/llama-4-maverick:free` (free, fast)
-  - Recommended: `anthropic/claude-3.5-sonnet` (best quality)
-  - Other options: `openai/gpt-4o`, `meta-llama/llama-3.1-8b-instruct:free`
+**Provider Selection:**
+
+- `AI_PROVIDER` - Choose your AI provider (`openrouter`, `openai`, `anthropic`)
+  - Default: `openrouter` (free tier model)
+
+**API Keys (choose based on your provider):**
+
+- `OPENROUTER_API_KEY` - Get from [openrouter.ai](https://openrouter.ai)
+- `OPENAI_API_KEY` - Get from [platform.openai.com](https://platform.openai.com)
+- `ANTHROPIC_API_KEY` - Get from [console.anthropic.com](https://console.anthropic.com)
+
+**Model Selection:**
+
+- `AI_MODEL` - Generic model name that works across providers
+- **or** provider-specific: `OPENROUTER_MODEL`, `OPENAI_MODEL`, `ANTHROPIC_MODEL`
+
+**Examples by Provider:**
+
+**OpenRouter (Recommended for Free Tier):**
+
+```
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=sk-or-v1-...
+AI_MODEL=meta-llama/llama-4-maverick:free
+```
+
+**OpenAI:**
+
+```
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+AI_MODEL=gpt-4o-mini
+```
+
+**Anthropic:**
+
+```
+AI_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+AI_MODEL=claude-3-haiku-20240307
+```
 
 ## MCP Client Configuration
 
 ### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
+
+**For OpenRouter (default):**
 
 ```json
 {
@@ -59,8 +104,45 @@ Add to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["token-shrinker"],
       "env": {
+        "AI_PROVIDER": "openrouter",
         "OPENROUTER_API_KEY": "sk-or-v1-your-openrouter-key-here",
-        "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
+        "AI_MODEL": "meta-llama/llama-4-maverick:free"
+      }
+    }
+  }
+}
+```
+
+**For OpenAI:**
+
+```json
+{
+  "mcpServers": {
+    "token-shrinker": {
+      "command": "npx",
+      "args": ["token-shrinker"],
+      "env": {
+        "AI_PROVIDER": "openai",
+        "OPENAI_API_KEY": "sk-your-openai-key-here",
+        "AI_MODEL": "gpt-4o-mini"
+      }
+    }
+  }
+}
+```
+
+**For Anthropic:**
+
+```json
+{
+  "mcpServers": {
+    "token-shrinker": {
+      "command": "npx",
+      "args": ["token-shrinker"],
+      "env": {
+        "AI_PROVIDER": "anthropic",
+        "ANTHROPIC_API_KEY": "sk-ant-your-anthropic-key-here",
+        "AI_MODEL": "claude-3-haiku-20240307"
       }
     }
   }
@@ -69,22 +151,21 @@ Add to your `claude_desktop_config.json`:
 
 ### Cursor/VS Code
 
-Add to your MCP configuration:
+Add similar configurations to your MCP settings. You can switch between providers by changing the `AI_PROVIDER` and corresponding API key environment variables.
 
-```json
-{
-  "mcpServers": {
-    "token-shrinker": {
-      "command": "npx",
-      "args": ["token-shrinker"],
-      "env": {
-        "OPENROUTER_API_KEY": "sk-or-v1-your-openrouter-key-here",
-        "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
-      }
-    }
-  }
-}
+## Dynamic Provider Switching
+
+Once connected, you can switch providers on-the-fly using MCP tools:
+
+```bash
+# Ask Claude/Cursor to switch providers
+"I want to use OpenAI instead of OpenRouter for compression"
+
+# Or switch models
+"Use Claude 3.5 Sonnet for better compression quality"
 ```
+
+The `set-provider`, `set-api-key`, and `set-model` tools allow you to configure TokenShrinker dynamically through natural language!
 
 ## Where Files Are Stored
 
@@ -157,7 +238,7 @@ TokenShrinker provides 5 MCP tools for AI assistants:
 
 ### `set-model`
 
-**Set your preferred OpenRouter model for compression**
+**Set your preferred model for the current provider**
 
 ```javascript
 // Input
