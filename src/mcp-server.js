@@ -129,11 +129,53 @@ export async function startMCPServer() {
     const { id, method, params } = request;
 
     if (method === "tools/list") {
+      console.error(`DEBUG: Processing tools/list request`);
+      console.error(
+        `DEBUG: tools object has ${Object.keys(tools).length} keys`
+      );
+
+      // Check if this is a standard MCP tools/list request
+      // Some clients might expect different response formats
+      const toolsArray = Object.values(tools).map((tool) => ({
+        name: tool.name,
+        description: tool.description || "",
+        inputSchema: tool.inputSchema || { type: "object", properties: {} },
+      }));
+
+      console.error(
+        `DEBUG: Returning ${toolsArray.length} tools: ${toolsArray
+          .map((t) => t.name)
+          .join(", ")}`
+      );
+
+      // Log the full response for debugging
+      const response = {
+        jsonrpc: "2.0",
+        id,
+        result: {
+          tools: toolsArray,
+        },
+      };
+
+      console.error(`DEBUG: Full response:`, JSON.stringify(response));
+      return response;
+    }
+
+    // Some MCP clients send initialize request first
+    if (method === "initialize") {
+      console.error(`DEBUG: Processing initialize request`);
       return {
         jsonrpc: "2.0",
         id,
         result: {
-          tools: Object.values(tools),
+          protocolVersion: "2024-11-05", // Or whatever is current
+          capabilities: {
+            tools: { listChanged: false }, // We don't support tool list changes
+          },
+          serverInfo: {
+            name: "TokenShrinker",
+            version: process.env.npm_package_version || "1.0.0",
+          },
         },
       };
     }
@@ -376,23 +418,38 @@ export async function startMCPServer() {
   // Handle stdin/stdout communication
   process.stdin.setEncoding("utf8");
 
+  console.error("DEBUG: Setting up stdin/stdout handlers");
+
   let buffer = "";
+  let requestCount = 0;
 
   process.stdin.on("data", async (chunk) => {
+    console.error("DEBUG: Received data chunk, length:", chunk.length);
+    console.error("DEBUG: Chunk content:", chunk.toString().slice(0, 100));
+
     buffer += chunk;
 
     // Process complete lines
     const lines = buffer.split("\n");
     buffer = lines.pop(); // Keep incomplete line in buffer
 
+    console.error("DEBUG: Processed into", lines.length, "lines");
+
     for (const line of lines) {
       if (!line.trim()) continue;
 
+      console.error("DEBUG: Processing line:", line.trim().slice(0, 100));
+      requestCount++;
+
       try {
         const request = JSON.parse(line.trim());
+        console.error("DEBUG: Parsed JSON request, method:", request.method);
         const response = await handleRequest(request);
+        console.error("DEBUG: Generated response, id:", response.id);
         process.stdout.write(JSON.stringify(response) + "\n");
+        console.error("DEBUG: Wrote response to stdout");
       } catch (error) {
+        console.error("DEBUG: Error processing request:", error.message);
         // Send error response for malformed requests
         const errorResponse = {
           jsonrpc: "2.0",
@@ -404,6 +461,7 @@ export async function startMCPServer() {
           id: null,
         };
         process.stdout.write(JSON.stringify(errorResponse) + "\n");
+        console.error("DEBUG: Wrote error response to stdout");
       }
     }
   });
