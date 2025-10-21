@@ -1,6 +1,6 @@
 {
   "name": "token-shrinker",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Model Context Protocol (MCP) server for compressing AI context to reduce token usage. Provides tools to shrink text, summarize files, and cache repository content.",
   "type": "module",
   "main": "src/mcp-server.js",
