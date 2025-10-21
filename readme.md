@@ -28,16 +28,23 @@ npm install -g token-shrinker
 
 ## Environment Variables
 
-Create a `.env` file with your OpenRouter API key:
+Create a `.env` file in your project directory:
 
 ```bash
-echo "OPENROUTER_API_KEY=your-openrouter-key-here" > .env
+# Required: Your OpenRouter API key
+echo "OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key-here" >> .env
+
+# Optional: Set your preferred OpenRouter model
+echo "OPENROUTER_MODEL=anthropic/claude-3.5-sonnet" >> .env
 ```
 
-**Optional Configuration:**
+**Environment Variables:**
 
-- `OPENROUTER_MODEL` - Set your preferred OpenRouter model (e.g., `anthropic/claude-3.5-sonnet`)
-- Default model when not specified: `meta-llama/llama-4-maverick:free` (free tier)
+- **Required**: `OPENROUTER_API_KEY` - Your OpenRouter API key (get from [openrouter.ai](https://openrouter.ai))
+- **Optional**: `OPENROUTER_MODEL` - Preferred compression model
+  - Default: `meta-llama/llama-4-maverick:free` (free, fast)
+  - Recommended: `anthropic/claude-3.5-sonnet` (best quality)
+  - Other options: `openai/gpt-4o`, `meta-llama/llama-3.1-8b-instruct:free`
 
 ## MCP Client Configuration
 
@@ -52,7 +59,8 @@ Add to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["token-shrinker"],
       "env": {
-        "OPENROUTER_API_KEY": "your-key-here"
+        "OPENROUTER_API_KEY": "sk-or-v1-your-openrouter-key-here",
+        "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
       }
     }
   }
@@ -70,7 +78,8 @@ Add to your MCP configuration:
       "command": "npx",
       "args": ["token-shrinker"],
       "env": {
-        "OPENROUTER_API_KEY": "your-key-here"
+        "OPENROUTER_API_KEY": "sk-or-v1-your-openrouter-key-here",
+        "OPENROUTER_MODEL": "anthropic/claude-3.5-sonnet"
       }
     }
   }
