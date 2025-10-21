@@ -34,6 +34,11 @@ Create a `.env` file with your OpenRouter API key:
 echo "OPENROUTER_API_KEY=your-openrouter-key-here" > .env
 ```
 
+**Optional Configuration:**
+
+- `OPENROUTER_MODEL` - Set your preferred OpenRouter model (e.g., `anthropic/claude-3.5-sonnet`)
+- Default model when not specified: `meta-llama/llama-4-maverick:free` (free tier)
+
 ## MCP Client Configuration
 
 ### Claude Desktop
@@ -98,7 +103,7 @@ your-project/
 
 ## Available Tools
 
-TokenShrinker provides 3 MCP tools for AI assistants:
+TokenShrinker provides 5 MCP tools for AI assistants:
 
 ### `shrink`
 
@@ -138,6 +143,40 @@ TokenShrinker provides 3 MCP tools for AI assistants:
 // Input
 {
   "repoPath": "/path/to/repo" // optional, uses current dir
+}
+```
+
+### `set-model`
+
+**Set your preferred OpenRouter model for compression**
+
+```javascript
+// Input
+{
+  "model": "anthropic/claude-3.5-sonnet"
+}
+
+// Output
+{
+  "message": "Model set to: anthropic/claude-3.5-sonnet",
+  "model": "anthropic/claude-3.5-sonnet",
+  "note": "This setting persists for the current session..."
+}
+```
+
+### `get-config`
+
+**View current configuration and available models**
+
+```javascript
+// Input
+{}
+
+// Output
+{
+  "openRouterApiKey": "configured",
+  "currentModel": "meta-llama/llama-4-maverick:free",
+  "availableModels": ["anthropic/claude-3.5-sonnet", "openai/gpt-4o", "..."]
 }
 ```
 

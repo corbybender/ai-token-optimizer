@@ -54,6 +54,30 @@ export async function startMCPServer() {
         },
       },
     },
+    "set-model": {
+      name: "set-model",
+      description: "Set your preferred OpenRouter model for text compression",
+      inputSchema: {
+        type: "object",
+        properties: {
+          model: {
+            type: "string",
+            description:
+              "OpenRouter model identifier (e.g., 'meta-llama/llama-4-maverick:free', 'anthropic/claude-3.5-sonnet')",
+          },
+        },
+        required: ["model"],
+      },
+    },
+    "get-config": {
+      name: "get-config",
+      description:
+        "Get current configuration including API key status and selected model",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
   };
 
   async function handleRequest(request) {
@@ -159,6 +183,52 @@ export async function startMCPServer() {
                 summaries === "No repository summaries available yet."
                   ? "empty"
                   : "available",
+            },
+          };
+        }
+
+        if (name === "set-model") {
+          if (!args?.model) {
+            throw new Error("Missing required parameter: model");
+          }
+
+          // Store the preferred model (could be persisted in future)
+          process.env.USER_PREFERRED_MODEL = args.model;
+
+          return {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              message: `Model set to: ${args.model}`,
+              model: args.model,
+              note: "This setting persists for the current session. Set OPENROUTER_MODEL environment variable for permanent configuration.",
+            },
+          };
+        }
+
+        if (name === "get-config") {
+          const hasApiKey = !!process.env.OPENROUTER_API_KEY;
+          const currentModel =
+            process.env.USER_PREFERRED_MODEL ||
+            process.env.OPENROUTER_MODEL ||
+            "meta-llama/llama-4-maverick:free";
+
+          return {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              openRouterApiKey: hasApiKey ? "configured" : "missing",
+              currentModel,
+              userPreferredModel: process.env.USER_PREFERRED_MODEL || null,
+              defaultModel: process.env.OPENROUTER_MODEL || null,
+              availableModels: [
+                "meta-llama/llama-4-maverick:free",
+                "anthropic/claude-3.5-sonnet",
+                "anthropic/claude-3-haiku",
+                "openai/gpt-4o-mini",
+                "openai/gpt-4o",
+                "meta-llama/llama-3.1-8b-instruct:free",
+              ],
             },
           };
         }
