@@ -1,20 +1,23 @@
-# Using AI Token Optimizer as a Transparent Proxy
+# Using TokenShrinker as a Transparent Proxy
 
-The AI Token Optimizer can act as a **transparent middleware proxy** that sits between your AI tools and OpenRouter. It automatically optimizes (compresses) large prompts before sending them to OpenRouter, saving you tokens and money.
+TokenShrinker can act as a **transparent middleware proxy** that sits between your AI tools and OpenRouter. It automatically optimizes (compresses) large prompts before sending them to OpenRouter, saving you tokens and money.
 
 ## How It Works
 
 ### For OpenRouter-based tools:
+
 ```
 Your AI Tool → http://localhost:4343/v1/chat/completions → [Optimize] → OpenRouter → Response
 ```
 
 ### For Anthropic API-based tools (Claude Code, etc.):
+
 ```
 Your AI Tool → http://localhost:4343/v1/messages → [Optimize] → Anthropic API → Response
 ```
 
 Instead of pointing your AI tool directly at the API provider, you point it at your local optimizer. The optimizer:
+
 1. Receives the request
 2. Compresses prompts >500 characters
 3. Forwards the optimized request to the real API
@@ -30,7 +33,7 @@ Instead of pointing your AI tool directly at the API provider, you point it at y
 
 ```bash
 cd your-project-directory
-ai-token-optimizer
+npx token-shrinker
 ```
 
 The server will run at `http://localhost:4343`
@@ -150,6 +153,7 @@ Watch the optimizer's terminal output to see compression stats in real-time:
 ```
 
 You can also check HTTP response headers:
+
 - `X-Token-Optimizer-Original-Length`: Original prompt size
 - `X-Token-Optimizer-Optimized-Length`: Compressed size
 - `X-Token-Optimizer-Compression`: Compression ratio
@@ -188,7 +192,9 @@ curl -X POST http://localhost:4343/v1/chat/completions \
 ## Troubleshooting
 
 ### Port already in use
+
 Change the port in your `.env` file:
+
 ```
 PORT=4444
 ```
@@ -196,19 +202,23 @@ PORT=4444
 Then update your tools to use `http://localhost:4444/v1`
 
 ### API key not found
+
 Make sure your `.env` file contains the appropriate API key:
 
 For OpenRouter proxy:
+
 ```
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```
 
 For Anthropic proxy (Claude):
+
 ```
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
 ### No compression happening
+
 - Check that your prompts are >500 characters
 - Watch the terminal output for "⏭️ Content too small, skipping optimization"
 - Increase verbosity by checking the console logs
@@ -236,4 +246,4 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 
 ## Need Help?
 
-Create an issue at: https://github.com/corbybender/ai-token-optimizer/issues
+Create an issue at: https://github.com/corbybender/token-shrinker/issues

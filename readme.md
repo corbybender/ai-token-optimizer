@@ -194,4 +194,4 @@ The MCP server handles everything automatically!
 
 ## Repository
 
-https://github.com/corbybender/ai-token-optimizer
+https://github.com/corbybender/token-shrinker
